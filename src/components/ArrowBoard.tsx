@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { PathArrow, Direction, Point } from '../game/arrowTypes';
-import { canPathArrowEscape, getAvailablePathEscapes } from '../game/puzzleSolver';
+import { canPathArrowEscape, getAvailablePathEscapes, getDirectionDelta } from '../game/puzzleSolver';
 import { sound } from '../game/audioEngine';
-import { Lightbulb, RotateCcw } from 'lucide-react';
+import { Lightbulb, RotateCcw, Grid3X3 } from 'lucide-react';
 
 interface ArrowBoardProps {
   gridWidth: number;
@@ -11,6 +11,7 @@ interface ArrowBoardProps {
   arrows: PathArrow[];
   onArrowEscaped: (arrowId: string, remainingCount: number, moveCount: number) => void;
   onPuzzleCleared: (moveCount: number, completionTimeSeconds: number) => void;
+  onBlockedMove?: () => void;
   roundStartTime: number | null;
   disabled?: boolean;
   remoteEscapeEvent?: { arrowId: string; playerName?: string } | null;
@@ -22,6 +23,7 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
   arrows: initialArrows,
   onArrowEscaped,
   onPuzzleCleared,
+  onBlockedMove,
   roundStartTime,
   disabled = false,
   remoteEscapeEvent = null,
@@ -30,6 +32,7 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
   const [blockedArrowId, setBlockedArrowId] = useState<string | null>(null);
   const [highlightBlockerId, setHighlightBlockerId] = useState<string | null>(null);
   const [hintArrowId, setHintArrowId] = useState<string | null>(null);
+  const [showGrid, setShowGrid] = useState<boolean>(true);
   const [escapingArrowIds, setEscapingArrowIds] = useState<Map<string, Direction>>(new Map());
   const [, setMoveCount] = useState<number>(0);
 
@@ -47,15 +50,33 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
     setEscapingArrowIds(prevMap => new Map(prevMap).set(arrowId, arrowToEscape.direction));
 
     setTimeout(() => {
-      setBoardArrows(prevArrows =>
-        prevArrows.map(a => (a.id === arrowId ? { ...a, escaped: true } : a))
-      );
+      setBoardArrows(prevArrows => {
+        const updated = prevArrows.map(a => (a.id === arrowId ? { ...a, escaped: true } : a));
+        const remaining = updated.filter(a => !a.escaped).length;
+
+        if (remaining === 0 && !isClearingRef.current) {
+          isClearingRef.current = true;
+          sound.playRoundComplete();
+          try {
+            confetti({
+              particleCount: 90,
+              spread: 80,
+              origin: { y: 0.6 },
+              colors: ['#000000', '#00f2fe', '#4facfe', '#10b981', '#f59e0b'],
+            });
+          } catch {
+            // Ignore
+          }
+        }
+        return updated;
+      });
+
       setEscapingArrowIds(prevMap => {
         const nextMap = new Map(prevMap);
         nextMap.delete(arrowId);
         return nextMap;
       });
-    }, 300);
+    }, 820);
   }, [remoteEscapeEvent, boardArrows, escapingArrowIds]);
 
   // Sync board arrows when new puzzle arrives
@@ -127,10 +148,11 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
               nextMap.delete(arrow.id);
               return nextMap;
             });
-          }, 300);
+          }, 820);
         } else {
           // Blocked!
           sound.playInvalidMove();
+          onBlockedMove?.();
           setBlockedArrowId(arrow.id);
           if (result.blockerId) {
             setHighlightBlockerId(result.blockerId);
@@ -159,6 +181,12 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
     }
   };
 
+  // Toggle Grid
+  const handleToggleGrid = () => {
+    sound.playArrowSwipe();
+    setShowGrid(prev => !prev);
+  };
+
   // Reset current board
   const handleResetBoard = () => {
     if (disabled) return;
@@ -168,10 +196,8 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
     setHintArrowId(null);
   };
 
-  // Convert logical grid coordinates to SVG viewBox units
-  // Logical: x in [0, gridWidth], y in [0, gridHeight]
-  // SVG units: padding 40, cell size 28
-  const PADDING = 30;
+  // Logical to SVG units
+  const PADDING = 24;
   const CELL_SIZE = 26;
   const svgWidth = gridWidth * CELL_SIZE + PADDING * 2;
   const svgHeight = gridHeight * CELL_SIZE + PADDING * 2;
@@ -189,25 +215,25 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
     return d;
   };
 
-  // Render arrowhead polygon at head point
+  // Render arrowhead polygon at head point (sleek refined proportion)
   const renderArrowHead = (headPoint: Point, direction: Direction, isBlocked: boolean, isHint: boolean, isBlocker: boolean) => {
     const x = toSvgX(headPoint.x);
     const y = toSvgY(headPoint.y);
-    const headSize = 13;
+    const headSize = 10;
 
     let pointsStr = '';
     switch (direction) {
       case 'UP':
-        pointsStr = `${x},${y - headSize} ${x - headSize * 0.8},${y + headSize * 0.4} ${x + headSize * 0.8},${y + headSize * 0.4}`;
+        pointsStr = `${x},${y - headSize} ${x - headSize * 0.75},${y + headSize * 0.45} ${x + headSize * 0.75},${y + headSize * 0.45}`;
         break;
       case 'DOWN':
-        pointsStr = `${x},${y + headSize} ${x - headSize * 0.8},${y - headSize * 0.4} ${x + headSize * 0.8},${y - headSize * 0.4}`;
+        pointsStr = `${x},${y + headSize} ${x - headSize * 0.75},${y - headSize * 0.45} ${x + headSize * 0.75},${y - headSize * 0.45}`;
         break;
       case 'LEFT':
-        pointsStr = `${x - headSize},${y} ${x + headSize * 0.4},${y - headSize * 0.8} ${x + headSize * 0.4},${y + headSize * 0.8}`;
+        pointsStr = `${x - headSize},${y} ${x + headSize * 0.45},${y - headSize * 0.75} ${x + headSize * 0.45},${y + headSize * 0.75}`;
         break;
       case 'RIGHT':
-        pointsStr = `${x + headSize},${y} ${x - headSize * 0.4},${y - headSize * 0.8} ${x - headSize * 0.4},${y + headSize * 0.8}`;
+        pointsStr = `${x + headSize},${y} ${x - headSize * 0.45},${y - headSize * 0.75} ${x - headSize * 0.45},${y + headSize * 0.75}`;
         break;
     }
 
@@ -218,16 +244,101 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
 
   const remainingCount = boardArrows.filter(a => !a.escaped).length;
 
+  // Helper to compute extended path that continues along grid in exit direction
+  const makeExtendedPathData = (points: Point[], direction: Direction) => {
+    if (points.length === 0) return { pathData: '', headEnd: points[0] || { x: 0, y: 0 } };
+    const head = points[points.length - 1];
+    const { dx, dy } = getDirectionDelta(direction);
+    
+    // Extend far out of the board along the grid
+    const exitLen = Math.max(gridWidth, gridHeight) + 4;
+    const exitPoint: Point = {
+      x: head.x + dx * exitLen,
+      y: head.y + dy * exitLen,
+    };
+
+    let d = `M ${toSvgX(points[0].x)} ${toSvgY(points[0].y)}`;
+    for (let i = 1; i < points.length; i++) {
+      d += ` L ${toSvgX(points[i].x)} ${toSvgY(points[i].y)}`;
+    }
+    d += ` L ${toSvgX(exitPoint.x)} ${toSvgY(exitPoint.y)}`;
+
+    return { pathData: d, headEnd: exitPoint };
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center select-none w-full max-w-lg mx-auto">
+    <div className="flex flex-col items-center justify-center select-none w-full max-w-4xl mx-auto px-2">
+      {/* Inline styles for slithering along grid animation */}
+      <style>{`
+        @keyframes slitherAlongGrid {
+          0% {
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
+          75% {
+            opacity: 0.9;
+          }
+          100% {
+            stroke-dashoffset: -1200;
+            opacity: 0;
+          }
+        }
+        @keyframes arrowHeadSlide {
+          0% {
+            transform: translate(0, 0);
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+        .slithering-arrow {
+          stroke-dasharray: 600 1800;
+          animation: slitherAlongGrid 0.82s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+        }
+      `}</style>
+
       {/* Maze Canvas Card (White Clean Minimalist Style from Reference Image) */}
-      <div className="relative bg-white rounded-3xl p-4 sm:p-6 shadow-2xl border-4 border-slate-200/80 w-full max-w-[min(94vw,70vh,460px)] flex flex-col items-center justify-center overflow-hidden">
+      <div className="relative bg-white rounded-3xl p-3 sm:p-5 shadow-2xl border-4 border-slate-200/80 w-full max-w-[min(96vw,880px)] flex flex-col items-center justify-center overflow-hidden">
         {/* SVG Maze Render Area */}
         <svg
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="w-full h-auto max-h-[58vh] touch-none select-none cursor-pointer filter drop-shadow-sm"
+          className="w-full h-auto max-h-[66vh] touch-none select-none cursor-pointer filter drop-shadow-sm"
           style={{ shapeRendering: 'geometricPrecision' }}
         >
+          {/* Background Grid Lines when showGrid is enabled */}
+          {showGrid && (
+            <g className="transition-opacity duration-300 pointer-events-none">
+              {/* Vertical Grid Lines */}
+              {Array.from({ length: gridWidth + 1 }).map((_, col) => (
+                <line
+                  key={`v-${col}`}
+                  x1={toSvgX(col)}
+                  y1={PADDING * 0.5}
+                  x2={toSvgX(col)}
+                  y2={svgHeight - PADDING * 0.5}
+                  stroke="#e2e8f0"
+                  strokeWidth="1.2"
+                  strokeOpacity="0.85"
+                />
+              ))}
+              {/* Horizontal Grid Lines */}
+              {Array.from({ length: gridHeight + 1 }).map((_, row) => (
+                <line
+                  key={`h-${row}`}
+                  x1={PADDING * 0.5}
+                  y1={toSvgY(row)}
+                  x2={svgWidth - PADDING * 0.5}
+                  y2={toSvgY(row)}
+                  stroke="#e2e8f0"
+                  strokeWidth="1.2"
+                  strokeOpacity="0.85"
+                />
+              ))}
+            </g>
+          )}
+
+          {/* Polyline Path Arrows */}
           {boardArrows.map(arrow => {
             if (arrow.escaped) return null;
 
@@ -238,15 +349,18 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
             const isHint = hintArrowId === arrow.id;
 
             const headPoint = arrow.points[arrow.points.length - 1];
-            const pathData = makePathData(arrow.points);
+            
+            // If escaping, use extended path along grid line
+            const pathData = isEscaping
+              ? makeExtendedPathData(arrow.points, arrow.direction).pathData
+              : makePathData(arrow.points);
 
-            // Escape translate style
-            let transform = '';
+            // Calculate arrowhead exit translation vector along grid
+            let headTransform = '';
             if (isEscaping && escapeDir) {
-              if (escapeDir === 'UP') transform = 'translateY(-1200px)';
-              if (escapeDir === 'DOWN') transform = 'translateY(1200px)';
-              if (escapeDir === 'LEFT') transform = 'translateX(-1200px)';
-              if (escapeDir === 'RIGHT') transform = 'translateX(1200px)';
+              const { dx, dy } = getDirectionDelta(escapeDir);
+              const travelDist = (Math.max(gridWidth, gridHeight) + 4) * CELL_SIZE;
+              headTransform = `translate(${dx * travelDist}px, ${dy * travelDist}px)`;
             }
 
             const strokeColor = isBlocked
@@ -255,21 +369,17 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
               ? '#f59e0b'
               : isHint
               ? '#00f2fe'
+              : isEscaping
+              ? '#00f2fe'
               : '#111827';
 
             return (
               <g
                 key={arrow.id}
                 onClick={() => attemptEscape(arrow)}
-                className={`transition-all duration-300 group ${
-                  isBlocked ? 'animate-shake' : ''
-                }`}
+                className={`group ${isBlocked ? 'animate-shake' : ''}`}
                 style={{
-                  transform,
-                  transition: isEscaping
-                    ? 'transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s ease-out'
-                    : 'none',
-                  opacity: isEscaping ? 0 : 1,
+                  filter: isEscaping ? 'drop-shadow(0 0 8px rgba(0,242,254,0.9))' : undefined,
                 }}
               >
                 {/* Invisible wide hit area for easy tapping on mobile */}
@@ -277,50 +387,76 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
                   d={pathData}
                   fill="none"
                   stroke="transparent"
-                  strokeWidth={24}
+                  strokeWidth={20}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   className="cursor-pointer"
                 />
 
-                {/* Visible thick arrow body line */}
+                {/* Visible sleek arrow body line slithering along grid path */}
                 <path
                   d={pathData}
                   fill="none"
                   stroke={strokeColor}
-                  strokeWidth={6}
+                  strokeWidth={isEscaping ? 4.2 : 3.8}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="transition-colors duration-150 cursor-pointer"
+                  className={`transition-colors duration-150 cursor-pointer ${
+                    isEscaping ? 'slithering-arrow' : ''
+                  }`}
                 />
 
-                {/* Arrowhead tip at end */}
-                {headPoint && renderArrowHead(headPoint, arrow.direction, isBlocked, isHint, isBlocker)}
+                {/* Arrowhead tip leading the motion along grid */}
+                {headPoint && (
+                  <g
+                    style={{
+                      transform: headTransform,
+                      transition: isEscaping
+                        ? 'transform 0.82s cubic-bezier(0.2, 0.7, 0.3, 1), opacity 0.82s ease-in'
+                        : 'none',
+                      opacity: isEscaping ? 0.3 : 1,
+                    }}
+                  >
+                    {renderArrowHead(headPoint, arrow.direction, isBlocked, isHint, isBlocker || isEscaping)}
+                  </g>
+                )}
               </g>
             );
           })}
         </svg>
 
-        {/* In-Game Bottom Utilities matching screenshot (Hint & Reset) */}
+        {/* In-Game Bottom Utilities matching screenshot (Hint, Grid, and Reset) */}
         <div className="flex items-center justify-between w-full mt-4 pt-3 border-t border-slate-100">
-          <button
-            onClick={handleHint}
-            disabled={disabled || remainingCount === 0}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-600 font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-40"
-            title="Get Hint"
-          >
-            <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400" />
-            <span>HINT</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleHint}
+              disabled={disabled || remainingCount === 0}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-600 font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+              title="Get Hint"
+            >
+              <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400" />
+              <span>HINT</span>
+            </button>
 
-          <div className="font-mono text-xs font-bold text-slate-500">
-            <span className="text-slate-900 text-base">{remainingCount}</span> ARROWS LEFT
+            {/* Grid Toggle Button next to Hint */}
+            <button
+              onClick={handleToggleGrid}
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-2xl border font-bold text-xs shadow-sm transition-all active:scale-95 cursor-pointer ${
+                showGrid
+                  ? 'bg-blue-50 border-blue-300 text-blue-600'
+                  : 'bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-600'
+              }`}
+              title={showGrid ? 'Hide Grid' : 'Show Grid'}
+            >
+              <Grid3X3 className="w-4 h-4" />
+              <span className="hidden sm:inline">GRID</span>
+            </button>
           </div>
 
           <button
             onClick={handleResetBoard}
             disabled={disabled}
-            className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-40"
+            className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
             title="Reset Board"
           >
             <RotateCcw className="w-4 h-4" />

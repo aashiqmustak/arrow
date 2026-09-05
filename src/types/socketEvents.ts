@@ -40,7 +40,7 @@ export interface ServerToClientEvents {
   arrowEscapedByPlayer: (data: { arrowId: string; playerId: string; playerName: string; remainingCount: number; moves: number }) => void;
   playerProgressUpdate: (data: { playerId: string; arrowsRemaining: number; moves: number }) => void;
   playerSolved: (data: { playerId: string; completionTime: number; moves: number; roundScore: number; totalScore: number }) => void;
-  roundCompleted: (data: { winnerId: string; standings: Array<{ playerId: string; name: string; completionTime: number | null; roundScore: number; totalScore: number }>; nextRoundInMs: number }) => void;
+  roundCompleted: (data: { completedLevel: number; winnerId: string; standings: Array<{ playerId: string; name: string; completionTime: number | null; roundScore: number; totalScore: number }>; nextRoundInMs: number }) => void;
   errorNotification: (message: string) => void;
   hostMigrated: (newHostId: string, newHostName: string) => void;
 }

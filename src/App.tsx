@@ -3,8 +3,6 @@ import { Landing } from './components/Landing';
 import { RoomLobby } from './components/RoomLobby';
 import { GameHUD } from './components/GameHUD';
 import { ArrowBoard } from './components/ArrowBoard';
-import { CountdownOverlay } from './components/CountdownOverlay';
-import { RoundResultModal } from './components/RoundResultModal';
 import { socketService, getSessionPlayerId, getSavedPlayerName } from './services/socketService';
 import { RoomData, Player } from './types/socketEvents';
 import { Puzzle } from './game/arrowTypes';
@@ -21,17 +19,7 @@ export const App: React.FC = () => {
   // Round / Game State
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | null>(null);
   const [roundStartTime, setRoundStartTime] = useState<number | null>(null);
-  const [countdownEndTime, setCountdownEndTime] = useState<number | null>(null);
-  const [arrowsRemaining, setArrowsRemaining] = useState<number>(0);
-  const [moveCount, setMoveCount] = useState<number>(0);
-  const [roundStandings, setRoundStandings] = useState<Array<{
-    playerId: string;
-    name: string;
-    completionTime: number | null;
-    roundScore: number;
-    totalScore: number;
-  }> | null>(null);
-  const [nextRoundInMs, setNextRoundInMs] = useState<number>(6000);
+  const [lives, setLives] = useState<number>(3);
   const [remoteEscapeEvent, setRemoteEscapeEvent] = useState<{ arrowId: string; playerName?: string } | null>(null);
   const [actionFeed, setActionFeed] = useState<string | null>(null);
 
@@ -66,23 +54,24 @@ export const App: React.FC = () => {
       }
     });
 
-    socket.on('gameCountdownStarted', (endTime: number) => {
-      setCountdownEndTime(endTime);
-      setRoundStandings(null);
-      setRemoteEscapeEvent(null);
-    });
-
     socket.on('roundStarted', (puzzle: Puzzle, startTime: number) => {
       setCurrentPuzzle(puzzle);
       setRoundStartTime(startTime);
-      setArrowsRemaining(puzzle.arrows.length);
-      setMoveCount(0);
-      setRoundStandings(null);
+      setLives(3);
       setRemoteEscapeEvent(null);
+      setRoom(prev => prev ? {
+        ...prev,
+        status: 'PLAYING',
+        currentLevel: puzzle.level,
+        currentPuzzle: puzzle,
+        roundStartTime: startTime,
+        players: Object.fromEntries(
+          Object.entries(prev.players).map(([id, p]) => [id, { ...p, status: 'SOLVING', completionTime: null }])
+        )
+      } : null);
     });
 
     socket.on('arrowEscapedByPlayer', (data) => {
-      setArrowsRemaining(data.remainingCount);
       if (data.playerId !== sessionPlayerId) {
         setRemoteEscapeEvent({ arrowId: data.arrowId, playerName: data.playerName });
         setActionFeed(`${data.playerName} cleared an arrow!`);
@@ -91,8 +80,8 @@ export const App: React.FC = () => {
     });
 
     socket.on('roundCompleted', (data) => {
-      setRoundStandings(data.standings);
-      setNextRoundInMs(data.nextRoundInMs);
+      setActionFeed(`Level ${data.completedLevel} Cleared! Starting Next Level...`);
+      setTimeout(() => setActionFeed(null), 2500);
     });
 
     socket.on('hostMigrated', (newHostId, newHostName) => {
@@ -124,8 +113,8 @@ export const App: React.FC = () => {
 
     return () => {
       socket.off('roomUpdated');
-      socket.off('gameCountdownStarted');
       socket.off('roundStarted');
+      socket.off('arrowEscapedByPlayer');
       socket.off('roundCompleted');
       socket.off('hostMigrated');
       socket.off('errorNotification');
@@ -181,14 +170,11 @@ export const App: React.FC = () => {
     socketService.leaveRoom();
     setRoom(null);
     setCurrentPuzzle(null);
-    setRoundStandings(null);
     updateUrl();
   };
 
   // Arrow escaped handler
   const handleArrowEscaped = useCallback((arrowId: string, remaining: number, moves: number) => {
-    setArrowsRemaining(remaining);
-    setMoveCount(moves);
     socketService.escapeArrow(arrowId, moves);
     socketService.submitProgress(remaining, moves);
   }, []);
@@ -203,24 +189,11 @@ export const App: React.FC = () => {
   // Render view depending on room status
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col justify-between relative overflow-x-hidden">
-      {/* Synchronized Countdown Overlay */}
-      {countdownEndTime && <CountdownOverlay countdownEndTime={countdownEndTime} />}
-
       {/* Action Notification Feed */}
       {actionFeed && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/50 text-cyan-300 font-mono text-xs shadow-lg backdrop-blur-md animate-bounce">
           ⚡ {actionFeed}
         </div>
-      )}
-
-      {/* Round Finished Standings & Progression Modal */}
-      {roundStandings && (
-        <RoundResultModal
-          currentLevel={room?.currentLevel || 1}
-          currentPlayer={currentPlayer}
-          standings={roundStandings}
-          nextRoundInMs={nextRoundInMs}
-        />
       )}
 
       {!room ? (
@@ -248,8 +221,7 @@ export const App: React.FC = () => {
             roomCode={room.roomCode}
             currentPlayer={currentPlayer}
             players={room.players}
-            arrowsRemaining={arrowsRemaining}
-            moveCount={moveCount}
+            lives={lives}
           />
 
           <main className="my-auto py-2 flex items-center justify-center">
@@ -260,6 +232,16 @@ export const App: React.FC = () => {
                 arrows={currentPuzzle.arrows}
                 onArrowEscaped={handleArrowEscaped}
                 onPuzzleCleared={handlePuzzleCleared}
+                onBlockedMove={() => {
+                  setLives(prev => {
+                    const next = Math.max(0, prev - 1);
+                    if (next === 0) {
+                      setActionFeed('💔 Out of hearts! Try carefully!');
+                      setTimeout(() => setActionFeed(null), 2500);
+                    }
+                    return next;
+                  });
+                }}
                 roundStartTime={roundStartTime}
                 disabled={room.status !== 'PLAYING' || currentPlayer?.status === 'COMPLETED'}
                 remoteEscapeEvent={remoteEscapeEvent}

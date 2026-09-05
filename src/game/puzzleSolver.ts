@@ -75,8 +75,9 @@ export function buildSpatialOccupancy(
 
 /**
  * Checks if a path arrow can escape in its arrowhead direction.
- * Every point on the arrow sweeps forward towards the exit border.
- * If any swept ray encounters another unescaped arrow, escape is blocked.
+ * Only the pointing arrow (arrowhead) determines the direction of movement and obstruction check:
+ * Traces a ray starting directly from the pointing arrowhead towards the board boundary.
+ * If any unescaped arrow obstructs the arrowhead's forward path, escape is blocked.
  */
 export function canPathArrowEscape(
   arrow: PathArrow,
@@ -90,25 +91,27 @@ export function canPathArrowEscape(
 
   const occupancy = buildSpatialOccupancy(arrows, arrow.id);
   const { dx, dy } = getDirectionDelta(arrow.direction);
-  const arrowPoints = getArrowOccupiedPoints(arrow);
+  const headPoint = arrow.points[arrow.points.length - 1];
 
-  // For every point on arrow, trace ray in escape direction
-  for (const pt of arrowPoints) {
-    let curX = pt.x + dx;
-    let curY = pt.y + dy;
+  if (!headPoint) {
+    return { success: false, arrowId: arrow.id };
+  }
 
-    while (curX >= 0 && curX <= gridWidth && curY >= 0 && curY <= gridHeight) {
-      const blockerId = occupancy.get(`${curX},${curY}`);
-      if (blockerId && blockerId !== arrow.id) {
-        return {
-          success: false,
-          arrowId: arrow.id,
-          blockerId,
-        };
-      }
-      curX += dx;
-      curY += dy;
+  // Trace ray strictly forward from the pointing arrow tip
+  let curX = headPoint.x + dx;
+  let curY = headPoint.y + dy;
+
+  while (curX >= 0 && curX <= gridWidth && curY >= 0 && curY <= gridHeight) {
+    const blockerId = occupancy.get(`${curX},${curY}`);
+    if (blockerId && blockerId !== arrow.id) {
+      return {
+        success: false,
+        arrowId: arrow.id,
+        blockerId,
+      };
     }
+    curX += dx;
+    curY += dy;
   }
 
   return { success: true, arrowId: arrow.id };

@@ -187,7 +187,7 @@ export class RoomManager {
   }
 
   /**
-   * Starts a game round: generates puzzle, triggers synchronized 3-2-1 countdown.
+   * Starts a game round immediately: generates puzzle and begins gameplay instantly.
    */
   public startRound(roomCode: string, hostPlayerId: string): { success: boolean; error?: string } {
     const code = roomCode.toUpperCase();
@@ -202,12 +202,10 @@ export class RoomManager {
     const puzzle = generatePuzzle(room.currentLevel);
     room.currentPuzzle = puzzle;
     room.difficulty = puzzle.difficulty;
-    room.status = 'COUNTDOWN';
+    room.status = 'PLAYING';
+    room.roundStartTime = Date.now();
+    room.roundCountdownEndTime = null;
     room.lastActivity = Date.now();
-
-    const COUNTDOWN_SECONDS = 3;
-    const countdownEndTime = Date.now() + COUNTDOWN_SECONDS * 1000;
-    room.roundCountdownEndTime = countdownEndTime;
 
     // Reset player round status
     for (const player of Object.values(room.players)) {
@@ -218,25 +216,10 @@ export class RoomManager {
       player.currentLevel = room.currentLevel;
     }
 
-    if (this.io) {
-      this.io.to(code).emit('gameCountdownStarted', countdownEndTime);
+    if (this.io && room.currentPuzzle) {
+      this.io.to(code).emit('roundStarted', room.currentPuzzle, room.roundStartTime);
       this.broadcastRoomUpdate(code);
     }
-
-    // After countdown ends, transition to PLAYING
-    setTimeout(() => {
-      const liveRoom = this.rooms.get(code);
-      if (!liveRoom || liveRoom.status !== 'COUNTDOWN') return;
-
-      liveRoom.status = 'PLAYING';
-      liveRoom.roundStartTime = Date.now();
-      liveRoom.lastActivity = Date.now();
-
-      if (this.io && liveRoom.currentPuzzle) {
-        this.io.to(code).emit('roundStarted', liveRoom.currentPuzzle, liveRoom.roundStartTime);
-        this.broadcastRoomUpdate(code);
-      }
-    }, COUNTDOWN_SECONDS * 1000);
 
     return { success: true };
   }
@@ -427,11 +410,14 @@ export class RoomManager {
       }));
 
     const winnerId = standings.length > 0 ? standings[0].playerId : room.hostId;
-    const AUTO_NEXT_ROUND_MS = 6000;
+    const AUTO_NEXT_ROUND_MS = 1800;
     room.nextRoundAutoStartTime = Date.now() + AUTO_NEXT_ROUND_MS;
+
+    const completedLevel = room.currentLevel;
 
     if (this.io) {
       this.io.to(roomCode).emit('roundCompleted', {
+        completedLevel,
         winnerId,
         standings,
         nextRoundInMs: AUTO_NEXT_ROUND_MS,
@@ -439,7 +425,7 @@ export class RoomManager {
       this.broadcastRoomUpdate(roomCode);
     }
 
-    // Auto progress to next level
+    // Fast seamless auto progress to next level
     const nextRoundTimer = setTimeout(() => {
       const liveRoom = this.rooms.get(roomCode);
       if (!liveRoom || liveRoom.status !== 'ROUND_COMPLETE') return;

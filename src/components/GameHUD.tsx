@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, Shield } from 'lucide-react';
+import { Copy, Check, Shield, Heart } from 'lucide-react';
 import { SoundToggle } from './SoundToggle';
 import { Player } from '../types/socketEvents';
 
@@ -8,8 +8,7 @@ interface GameHUDProps {
   roomCode: string;
   currentPlayer: Player | null;
   players: Record<string, Player>;
-  arrowsRemaining: number;
-  moveCount: number;
+  lives?: number;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
@@ -17,8 +16,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   roomCode,
   currentPlayer,
   players,
-  arrowsRemaining,
-  moveCount,
+  lives = 3,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -45,14 +43,18 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           </div>
         </div>
 
-        {/* Top Center: Brand Identity */}
-        <div className="flex items-center gap-1.5">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-brand-cyan to-brand-blue flex items-center justify-center text-dark-950 font-black text-xs shadow-md">
-            ↗
-          </div>
-          <span className="text-base sm:text-lg font-black tracking-wider text-white neon-text-cyan">
-            AS ARROW
-          </span>
+        {/* Top Center: 3 Hearts (Lives) matching reference game style */}
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-dark-900/80 rounded-full border border-slate-700/60 shadow-inner">
+          {[1, 2, 3].map(heartIdx => (
+            <Heart
+              key={heartIdx}
+              className={`w-5 h-5 transition-all duration-300 ${
+                heartIdx <= lives
+                  ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.7)] scale-100'
+                  : 'text-slate-600 fill-slate-800 scale-90 opacity-40'
+              }`}
+            />
+          ))}
         </div>
 
         {/* Top Right: Room Code & Sound */}
@@ -133,18 +135,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               );
             })}
           </div>
-        </div>
-      </div>
-
-      {/* In-Game Bottom Statistics */}
-      <div className="flex items-center justify-between px-4 py-2 glass-panel rounded-2xl border-slate-800/80 font-mono text-xs sm:text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400">ARROWS LEFT:</span>
-          <span className="font-black text-brand-cyan text-base">{arrowsRemaining}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400">MOVES:</span>
-          <span className="font-black text-amber-300 text-base">{moveCount}</span>
         </div>
       </div>
     </div>
