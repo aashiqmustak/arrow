@@ -243,7 +243,7 @@ export const Landing: React.FC<LandingProps> = ({
                     maxLength={15}
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
-                    placeholder="e.g. Aashiq, ArrowMaster"
+                    placeholder="e.g. Aashiq, Shagitha"
                     autoFocus
                     className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-300 focus:border-purple-600 focus:bg-white focus:ring-2 focus:ring-purple-100 text-zinc-900 text-sm font-medium placeholder:text-zinc-400 transition-all outline-none"
                   />
