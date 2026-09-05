@@ -24,8 +24,9 @@ class SocketService {
   public connect(): Socket<ServerToClientEvents, ClientToServerEvents> {
     if (!this.socket) {
       // In dev, Vite proxies /socket.io to http://localhost:3001
-      // In prod, connects to current host
-      this.socket = io({
+      // In prod (e.g. Vercel), connects to VITE_SERVER_URL or current host
+      const serverUrl = import.meta.env.VITE_SERVER_URL || undefined;
+      this.socket = io(serverUrl, {
         transports: ['websocket', 'polling'],
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
