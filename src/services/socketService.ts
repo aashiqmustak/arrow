@@ -34,16 +34,18 @@ class SocketService {
     if (!this.socket) {
       const serverUrl = import.meta.env.VITE_SERVER_URL || undefined;
 
-      if (serverUrl) {
-        try {
-          this.socket = io(serverUrl, {
-            transports: ['websocket', 'polling'],
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-          });
-        } catch {
-          this.socket = null;
-        }
+      try {
+        this.socket = io(serverUrl, {
+          transports: ['websocket', 'polling'],
+          reconnectionAttempts: 10,
+          reconnectionDelay: 1000,
+        });
+
+        this.socket.on('connect', () => {
+          console.log('[Socket] Connected to server with ID:', this.socket?.id);
+        });
+      } catch {
+        this.socket = null;
       }
     }
     return this.createProxySocket();
