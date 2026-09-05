@@ -32,8 +32,8 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join my AS Arrow game room!',
-          text: `Join my AS Arrow room with code: ${room.roomCode}`,
+          title: 'Join my Arrow game room!',
+          text: `Join my Arrow room with code: ${room.roomCode}`,
           url,
         });
         return;
@@ -50,15 +50,15 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
   const activePlayers = Object.values(room.players).filter(p => p.connected);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 max-w-xl mx-auto select-none">
+    <div className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 max-w-xl mx-auto select-none bg-zinc-50">
       {/* Top Header */}
-      <header className="w-full flex items-center justify-between glass-panel px-5 py-3.5 rounded-3xl">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-cyan to-brand-blue flex items-center justify-center text-dark-950 font-black text-sm shadow-md shadow-brand-cyan/20">
+      <header className="w-full flex items-center justify-between bg-white/90 backdrop-blur-md px-5 py-3 rounded-2xl border border-zinc-200 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-purple-600/20">
             ↗
           </div>
-          <span className="text-xl font-black tracking-wider text-white neon-text-cyan">
-            AS ARROW
+          <span className="text-lg font-black tracking-wider text-zinc-900">
+            ARROW<span className="text-purple-600">.</span>
           </span>
         </div>
 
@@ -66,32 +66,28 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
           <SoundToggle />
           <button
             onClick={onLeaveRoom}
-            className="p-2.5 rounded-xl bg-dark-800/80 border border-slate-700/60 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 transition-all active:scale-95"
+            className="p-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-500 hover:text-rose-600 hover:bg-rose-50 transition-all active:scale-95 cursor-pointer"
             title="Leave Room"
             aria-label="Leave Room"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
       {/* Center Room Code Card */}
       <main className="w-full my-auto py-6 flex flex-col items-center">
-        <div className="glass-panel-glow border-brand-cyan/40 p-6 sm:p-8 rounded-3xl w-full flex flex-col items-center text-center relative overflow-hidden shadow-2xl">
-          {/* Subtle Cyber Glow in Background */}
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-brand-cyan/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-brand-blue/15 rounded-full blur-3xl pointer-events-none" />
-
-          <span className="text-xs font-mono uppercase tracking-[0.25em] text-cyan-300 font-bold mb-2">
+        <div className="bg-white border border-zinc-200/80 p-6 sm:p-8 rounded-3xl w-full flex flex-col items-center text-center relative overflow-hidden shadow-xl">
+          <span className="text-xs font-mono uppercase tracking-[0.25em] text-purple-600 font-bold mb-2">
             ROOM READY
           </span>
-          <p className="text-sm text-slate-400 mb-5">
-            Share this code with your friends to play together
+          <p className="text-xs text-zinc-500 mb-5">
+            Share this room code with other players to invite them
           </p>
 
           {/* Large 6-Character Room Code Display */}
-          <div className="bg-dark-950/80 border-2 border-brand-cyan/50 rounded-2xl px-6 py-4 mb-5 flex items-center justify-center gap-3 shadow-inner group">
-            <span className="text-4xl sm:text-5xl font-mono font-black tracking-widest text-white neon-text-cyan">
+          <div className="bg-zinc-50 border-2 border-zinc-200 rounded-2xl px-6 py-4 mb-5 flex items-center justify-center gap-3 shadow-inner">
+            <span className="text-4xl sm:text-5xl font-mono font-black tracking-widest text-zinc-900">
               {room.roomCode}
             </span>
           </div>
@@ -100,16 +96,16 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
           <div className="flex items-center gap-3 w-full max-w-sm mb-6">
             <button
               onClick={handleCopyCode}
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-dark-800/90 border border-brand-cyan/40 text-sm font-bold text-white hover:bg-brand-cyan/20 transition-all active:scale-95"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-xs font-bold text-zinc-800 transition-all active:scale-95 cursor-pointer"
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400">COPIED!</span>
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span className="text-emerald-700 font-mono">COPIED!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4 text-cyan-300" />
+                  <Copy className="w-4 h-4 text-purple-600" />
                   <span>COPY CODE</span>
                 </>
               )}
@@ -117,26 +113,26 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
 
             <button
               onClick={handleShareLink}
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-dark-800/90 border border-slate-700/80 text-sm font-bold text-slate-300 hover:text-white hover:border-slate-500 transition-all active:scale-95"
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-xs font-bold text-zinc-700 transition-all active:scale-95 cursor-pointer"
               title="Share Room Link"
             >
               {shared ? (
-                <Check className="w-4 h-4 text-emerald-400" />
+                <Check className="w-4 h-4 text-emerald-600" />
               ) : (
-                <Share2 className="w-4 h-4 text-slate-400" />
+                <Share2 className="w-4 h-4 text-zinc-600" />
               )}
               <span className="hidden sm:inline">SHARE</span>
             </button>
           </div>
 
           {/* Connected Players Section */}
-          <div className="w-full border-t border-slate-800/80 pt-5">
+          <div className="w-full border-t border-zinc-100 pt-5">
             <div className="flex items-center justify-between mb-3 text-xs font-mono">
-              <span className="text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-bold">
-                <Users className="w-3.5 h-3.5 text-brand-cyan" />
+              <span className="text-zinc-600 uppercase tracking-wider flex items-center gap-1.5 font-medium">
+                <Users className="w-3.5 h-3.5 text-purple-600" />
                 PLAYERS
               </span>
-              <span className="text-cyan-300 bg-brand-cyan/15 px-2.5 py-0.5 rounded-full font-bold">
+              <span className="text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md font-bold text-[11px]">
                 {activePlayers.length} {activePlayers.length === 1 ? 'Player' : 'Players'}
               </span>
             </div>
@@ -148,22 +144,22 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
                 return (
                   <div
                     key={player.id}
-                    className={`flex items-center justify-between px-3 py-2 rounded-xl border text-sm transition-all ${
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl border text-xs transition-all ${
                       isCurrent
-                        ? 'bg-brand-cyan/15 border-brand-cyan/40 text-white'
-                        : 'bg-dark-900/60 border-slate-800/80 text-slate-300'
+                        ? 'bg-purple-50 border-purple-200 text-purple-950 font-semibold'
+                        : 'bg-zinc-50 border-zinc-200 text-zinc-700'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                       <span className="font-medium truncate max-w-[130px]">
                         {player.name} {isCurrent && '(You)'}
                       </span>
                     </div>
 
                     {player.isHost && (
-                      <span className="flex items-center gap-1 text-[10px] font-mono uppercase bg-amber-500/20 border border-amber-400/40 text-amber-300 px-2 py-0.5 rounded-md shrink-0">
-                        <Shield className="w-2.5 h-2.5" /> HOST
+                      <span className="flex items-center gap-1 text-[10px] font-mono uppercase bg-zinc-200 text-zinc-800 px-1.5 py-0.5 rounded shrink-0 font-semibold">
+                        <Shield className="w-2.5 h-2.5 text-purple-600" /> HOST
                       </span>
                     )}
                   </div>
@@ -180,14 +176,14 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
           <button
             onClick={onStartGame}
             disabled={isStarting}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-purple hover:brightness-110 active:scale-[0.98] text-dark-950 font-black text-lg tracking-wider uppercase transition-all shadow-xl shadow-brand-cyan/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-3.5 rounded-2xl bg-black hover:bg-zinc-800 active:scale-[0.98] text-white font-black text-sm tracking-wider uppercase transition-all shadow-lg shadow-black/10 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <Play className="w-6 h-6 fill-current" />
+            <Play className="w-4 h-4 fill-current" />
             {isStarting ? 'STARTING...' : 'START GAME'}
           </button>
         ) : (
-          <div className="w-full py-4 rounded-2xl glass-panel border-slate-800/80 text-center font-mono text-sm text-slate-400 flex items-center justify-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+          <div className="w-full py-3.5 rounded-2xl bg-white border border-zinc-200 text-center font-mono text-xs text-zinc-500 flex items-center justify-center gap-2 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
             Waiting for host to start...
           </div>
         )}

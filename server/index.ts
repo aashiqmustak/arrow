@@ -121,6 +121,36 @@ io.on('connection', (socket) => {
     callback(result);
   });
 
+  // In-Game & Lobby Chat
+  socket.on('sendChatMessage', ({ text }, callback) => {
+    try {
+      const rooms = Array.from(socket.rooms);
+      const roomCode = rooms.find(r => r !== socket.id);
+      if (!roomCode) {
+        if (callback) callback({ success: false, error: 'Not in a room' });
+        return;
+      }
+
+      const room = roomManager.getRoom(roomCode);
+      if (!room) {
+        if (callback) callback({ success: false, error: 'Room not found' });
+        return;
+      }
+
+      const player = Object.values(room.players).find(p => p.socketId === socket.id);
+      if (!player) {
+        if (callback) callback({ success: false, error: 'Player not recognized' });
+        return;
+      }
+
+      const res = roomManager.sendChatMessage(roomCode, player.id, text);
+      if (callback) callback(res);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to send message';
+      if (callback) callback({ success: false, error: msg });
+    }
+  });
+
   // Leave room
   socket.on('leaveRoom', () => {
     roomManager.handleLeaveRoom(socket.id);

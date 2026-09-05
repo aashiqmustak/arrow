@@ -118,6 +118,33 @@ export function canPathArrowEscape(
 }
 
 /**
+ * Fast check if an arrow can escape against a given occupancy map.
+ */
+function canArrowEscapeWithMap(
+  arrow: PathArrow,
+  occupancy: Map<string, string>,
+  gridWidth: number,
+  gridHeight: number
+): boolean {
+  const { dx, dy } = getDirectionDelta(arrow.direction);
+  const headPoint = arrow.points[arrow.points.length - 1];
+  if (!headPoint) return false;
+
+  let curX = headPoint.x + dx;
+  let curY = headPoint.y + dy;
+
+  while (curX >= 0 && curX <= gridWidth && curY >= 0 && curY <= gridHeight) {
+    const blockerId = occupancy.get(`${curX},${curY}`);
+    if (blockerId && blockerId !== arrow.id) {
+      return false;
+    }
+    curX += dx;
+    curY += dy;
+  }
+  return true;
+}
+
+/**
  * Gets all arrows currently eligible to escape.
  */
 export function getAvailablePathEscapes(
@@ -126,9 +153,10 @@ export function getAvailablePathEscapes(
   gridHeight: number
 ): PathArrow[] {
   const available: PathArrow[] = [];
+  const occupancy = buildSpatialOccupancy(arrows);
   for (const arrow of arrows) {
     if (!arrow.escaped) {
-      if (canPathArrowEscape(arrow, arrows, gridWidth, gridHeight).success) {
+      if (canArrowEscapeWithMap(arrow, occupancy, gridWidth, gridHeight)) {
         available.push(arrow);
       }
     }
@@ -143,7 +171,7 @@ export interface SolveResult {
 }
 
 /**
- * Simulates solving the puzzle step by step to verify 100% solvability.
+ * Simulates solving the puzzle step by step to verify 100% solvability in sub-millisecond time.
  */
 export function solvePathPuzzle(
   arrows: PathArrow[],
@@ -154,9 +182,31 @@ export function solvePathPuzzle(
   const total = simArrows.length;
   const solutionOrder: string[] = [];
 
+  // Pre-calculate occupied points for each arrow
+  const arrowPointsMap = new Map<string, Point[]>();
+  const occupancy = new Map<string, string>();
+
+  for (const arrow of simArrows) {
+    const pts = getArrowOccupiedPoints(arrow);
+    arrowPointsMap.set(arrow.id, pts);
+    for (const pt of pts) {
+      occupancy.set(`${pt.x},${pt.y}`, arrow.id);
+    }
+  }
+
+  const unescapedSet = new Set<PathArrow>(simArrows);
+
   while (solutionOrder.length < total) {
-    const available = getAvailablePathEscapes(simArrows, gridWidth, gridHeight);
-    if (available.length === 0) {
+    let nextEscapable: PathArrow | null = null;
+
+    for (const arrow of unescapedSet) {
+      if (canArrowEscapeWithMap(arrow, occupancy, gridWidth, gridHeight)) {
+        nextEscapable = arrow;
+        break;
+      }
+    }
+
+    if (!nextEscapable) {
       return {
         isSolvable: false,
         solutionOrder: [],
@@ -164,9 +214,15 @@ export function solvePathPuzzle(
       };
     }
 
-    const next = available[0];
-    next.escaped = true;
-    solutionOrder.push(next.id);
+    // Mark escaped and remove from occupancy map
+    nextEscapable.escaped = true;
+    unescapedSet.delete(nextEscapable);
+    solutionOrder.push(nextEscapable.id);
+
+    const pts = arrowPointsMap.get(nextEscapable.id) || [];
+    for (const pt of pts) {
+      occupancy.delete(`${pt.x},${pt.y}`);
+    }
   }
 
   return {

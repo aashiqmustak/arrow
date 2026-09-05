@@ -77,13 +77,13 @@ export const Landing: React.FC<LandingProps> = ({
   ];
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between items-center p-4 sm:p-6 overflow-hidden select-none">
+    <div className="relative min-h-screen flex flex-col justify-between items-center p-4 sm:p-6 overflow-hidden select-none bg-zinc-50">
       {/* Dynamic Background Floating Arrows */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         {backgroundArrows.map((item, idx) => (
           <motion.div
             key={idx}
-            className="absolute text-brand-cyan/10"
+            className="absolute text-zinc-300/40"
             style={{
               top: item.top,
               left: item.left,
@@ -91,8 +91,8 @@ export const Landing: React.FC<LandingProps> = ({
               transform: `rotate(${item.rotate}deg)`,
             }}
             animate={{
-              y: [0, -18, 0],
-              opacity: [0.08, 0.22, 0.08],
+              y: [0, -16, 0],
+              opacity: [0.2, 0.45, 0.2],
             }}
             transition={{
               duration: 5 + idx,
@@ -107,13 +107,13 @@ export const Landing: React.FC<LandingProps> = ({
       </div>
 
       {/* Top Header */}
-      <header className="w-full max-w-4xl flex items-center justify-between z-10 glass-panel px-5 py-3 rounded-2xl">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-cyan to-brand-blue flex items-center justify-center text-dark-950 font-black text-sm shadow-md shadow-brand-cyan/20">
+      <header className="w-full max-w-4xl flex items-center justify-between z-10 bg-white/85 backdrop-blur-md px-5 py-3 rounded-2xl border border-zinc-200/80 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-purple-600/20">
             ↗
           </div>
-          <span className="text-xl font-black tracking-wider text-white neon-text-cyan">
-            AS ARROW
+          <span className="text-lg font-black tracking-wider text-zinc-900">
+            ARROW<span className="text-purple-600">.</span>
           </span>
         </div>
 
@@ -128,9 +128,9 @@ export const Landing: React.FC<LandingProps> = ({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-cyan/10 border border-brand-cyan/30 text-brand-cyan text-xs font-mono uppercase tracking-widest mb-6"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-mono uppercase tracking-widest mb-6"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <Sparkles className="w-3.5 h-3.5 text-purple-600" />
           <span>Real-time Multiplayer Puzzle</span>
         </motion.div>
 
@@ -139,11 +139,11 @@ export const Landing: React.FC<LandingProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-4xl sm:text-6xl font-black text-white tracking-tight mb-4 leading-tight"
+          className="text-4xl sm:text-6xl font-black text-zinc-900 tracking-tight mb-4 leading-tight"
         >
           Clear the arrows. <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-purple neon-text-cyan">
-            Beat your friends.
+          <span className="text-zinc-500">
+            Beat your <span className="text-purple-600">rivals</span>.
           </span>
         </motion.h1>
 
@@ -152,16 +152,16 @@ export const Landing: React.FC<LandingProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-base sm:text-lg text-slate-300 max-w-md mb-8 leading-relaxed font-normal"
+          className="text-sm sm:text-base text-zinc-600 max-w-md mb-8 leading-relaxed font-normal"
         >
-          A fast multiplayer puzzle where every move matters. Compete live on the exact same board.
+          A minimalist high-speed arrow puzzle. Every path counts. Compete live on the exact same board.
         </motion.p>
 
         {/* Error Alert if any */}
         {(errorMessage || localError) && (
-          <div className="w-full mb-6 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-sm font-mono flex items-center justify-between">
+          <div className="w-full mb-6 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-mono flex items-center justify-between">
             <span>{errorMessage || localError}</span>
-            <button onClick={() => { onClearError(); setLocalError(null); }} className="text-rose-400 hover:text-white">
+            <button onClick={() => { onClearError(); setLocalError(null); }} className="text-rose-500 hover:text-rose-900">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -176,65 +176,65 @@ export const Landing: React.FC<LandingProps> = ({
         >
           <button
             onClick={handleOpenCreate}
-            className="w-full sm:w-1/2 py-4 px-6 rounded-2xl bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-purple text-dark-950 font-black text-base uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-brand-cyan/25 flex items-center justify-center gap-2 group cursor-pointer"
+            className="w-full sm:w-1/2 py-3.5 px-6 rounded-2xl bg-black hover:bg-zinc-800 text-white font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-lg shadow-black/10 flex items-center justify-center gap-2 group cursor-pointer"
           >
-            <Play className="w-5 h-5 fill-current transition-transform group-hover:scale-110" />
+            <Play className="w-4 h-4 fill-current transition-transform group-hover:scale-110" />
             <span>CREATE ROOM</span>
           </button>
 
           <button
             onClick={handleOpenJoin}
-            className="w-full sm:w-1/2 py-4 px-6 rounded-2xl bg-dark-800/90 border border-slate-700 hover:border-brand-cyan/50 hover:bg-dark-700 text-white font-bold text-base uppercase tracking-wider active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-1/2 py-3.5 px-6 rounded-2xl bg-white border border-zinc-300 hover:border-purple-400 hover:bg-purple-50/40 text-zinc-900 font-bold text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Users className="w-5 h-5 text-cyan-300" />
+            <Users className="w-4 h-4 text-purple-600" />
             <span>JOIN ROOM</span>
           </button>
         </motion.div>
 
         {/* Zero Signup Guarantee Text */}
-        <p className="mt-8 text-xs font-mono text-slate-400 uppercase tracking-widest">
-          ⚡ No signup. No downloads. Just play.
+        <p className="mt-8 text-xs font-mono text-zinc-400 uppercase tracking-widest">
+          ⚡ No signup. No downloads. Instant play.
         </p>
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-4xl text-center py-3 text-xs text-slate-400 font-mono z-10">
-        AS Arrow © {new Date().getFullYear()} — Ultra-fast Realtime Multiplayer
+      <footer className="w-full max-w-4xl text-center py-3 text-xs text-zinc-400 font-mono z-10">
+        ARROW © {new Date().getFullYear()} — Realtime Multiplayer
       </footer>
 
       {/* Modal: Create or Join Room */}
       <AnimatePresence>
         {modalMode !== 'NONE' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <motion.div
-              initial={{ scale: 0.92, opacity: 0, y: 15 }}
+              initial={{ scale: 0.94, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.92, opacity: 0, y: 15 }}
+              exit={{ scale: 0.94, opacity: 0, y: 12 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="glass-panel-glow border-brand-cyan/40 p-6 sm:p-8 rounded-3xl w-full max-w-md shadow-2xl relative"
+              className="bg-white border border-purple-200/80 p-6 sm:p-8 rounded-3xl w-full max-w-md shadow-2xl relative"
             >
               {/* Close Button */}
               <button
                 onClick={handleCloseModal}
-                className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-xl hover:bg-dark-800 transition-all"
+                className="absolute top-5 right-5 text-zinc-400 hover:text-zinc-800 p-1.5 rounded-xl hover:bg-zinc-100 transition-all cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
 
               {/* Modal Header */}
               <div className="mb-6">
-                <span className="text-xs font-mono uppercase tracking-widest text-cyan-300 font-bold">
+                <span className="text-xs font-mono uppercase tracking-widest text-purple-600 font-bold">
                   {modalMode === 'CREATE' ? 'HOST A MATCH' : 'ENTER CODE'}
                 </span>
-                <h3 className="text-2xl font-black text-white mt-1">
+                <h3 className="text-xl font-black text-zinc-900 mt-1">
                   {modalMode === 'CREATE' ? 'Create Game Room' : 'Join Game Room'}
                 </h3>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Temporary Name Input */}
+                {/* Name Input */}
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2 font-semibold">
+                  <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-2 font-medium">
                     What's your name?
                   </label>
                   <input
@@ -245,17 +245,17 @@ export const Landing: React.FC<LandingProps> = ({
                     onChange={(e) => setPlayerName(e.target.value)}
                     placeholder="e.g. Aashiq, ArrowMaster"
                     autoFocus
-                    className="w-full px-4 py-3.5 rounded-2xl bg-dark-900/90 border border-slate-700/80 focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/20 text-white font-medium placeholder:text-slate-500 transition-all outline-none"
+                    className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-300 focus:border-purple-600 focus:bg-white focus:ring-2 focus:ring-purple-100 text-zinc-900 text-sm font-medium placeholder:text-zinc-400 transition-all outline-none"
                   />
-                  <span className="block text-[10px] font-mono text-slate-400 mt-1 text-right">
-                    {playerName.length}/15 chars (No account required)
+                  <span className="block text-[10px] font-mono text-zinc-400 mt-1 text-right">
+                    {playerName.length}/15 chars
                   </span>
                 </div>
 
                 {/* Room Code Input (If Joining) */}
                 {modalMode === 'JOIN' && (
                   <div>
-                    <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2 font-semibold">
+                    <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-2 font-medium">
                       Enter 6-Character Room Code
                     </label>
                     <input
@@ -265,7 +265,7 @@ export const Landing: React.FC<LandingProps> = ({
                       value={roomCode}
                       onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                       placeholder="ABC123"
-                      className="w-full px-4 py-3.5 rounded-2xl bg-dark-900/90 border border-slate-700/80 focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/20 text-white font-mono font-bold tracking-widest uppercase placeholder:text-slate-500 transition-all outline-none text-center text-xl"
+                      className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-300 focus:border-purple-600 focus:bg-white focus:ring-2 focus:ring-purple-100 text-zinc-900 font-mono font-bold tracking-widest uppercase placeholder:text-zinc-400 transition-all outline-none text-center text-lg"
                     />
                   </div>
                 )}
@@ -274,14 +274,14 @@ export const Landing: React.FC<LandingProps> = ({
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full mt-2 py-4 rounded-2xl bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-purple text-dark-950 font-black text-base uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-brand-cyan/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full mt-2 py-3.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isLoading ? (
                     <span>CONNECTING...</span>
                   ) : (
                     <>
                       <span>{modalMode === 'CREATE' ? 'CREATE & ENTER LOBBY' : 'JOIN ROOM'}</span>
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="w-4 h-4" />
                     </>
                   )}
                 </button>

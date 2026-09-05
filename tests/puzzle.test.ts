@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generatePuzzle, getMazeConfig } from '../src/game/puzzleGenerator';
-import { solvePathPuzzle, canPathArrowEscape } from '../src/game/puzzleSolver';
+import { solvePathPuzzle, canPathArrowEscape, getArrowOccupiedPoints } from '../src/game/puzzleSolver';
 import { PathArrow } from '../src/game/arrowTypes';
 import { calculateRoundScore } from '../src/game/scoring';
 
@@ -22,7 +22,8 @@ describe('AS Arrow - Polyline Labyrinth Puzzle Engine', () => {
       const coveredRows = new Set<number>();
       const coveredCols = new Set<number>();
       for (const arrow of puzzle.arrows) {
-        for (const pt of arrow.points) {
+        const occupied = getArrowOccupiedPoints(arrow);
+        for (const pt of occupied) {
           coveredRows.add(pt.y);
           coveredCols.add(pt.x);
         }

@@ -3,6 +3,8 @@ import { Landing } from './components/Landing';
 import { RoomLobby } from './components/RoomLobby';
 import { GameHUD } from './components/GameHUD';
 import { ArrowBoard } from './components/ArrowBoard';
+import { ChatPanel } from './components/ChatPanel';
+import { RoundResultModal } from './components/RoundResultModal';
 import { socketService, getSessionPlayerId, getSavedPlayerName } from './services/socketService';
 import { RoomData, Player } from './types/socketEvents';
 import { Puzzle } from './game/arrowTypes';
@@ -22,6 +24,17 @@ export const App: React.FC = () => {
   const [lives, setLives] = useState<number>(3);
   const [remoteEscapeEvent, setRemoteEscapeEvent] = useState<{ arrowId: string; playerName?: string } | null>(null);
   const [actionFeed, setActionFeed] = useState<string | null>(null);
+  const [roundStandingsData, setRoundStandingsData] = useState<{
+    completedLevel: number;
+    standings: Array<{
+      playerId: string;
+      name: string;
+      completionTime: number | null;
+      roundScore: number;
+      totalScore: number;
+    }>;
+    nextRoundInMs: number;
+  } | null>(null);
 
   const sessionPlayerId = getSessionPlayerId();
 
@@ -59,6 +72,7 @@ export const App: React.FC = () => {
       setRoundStartTime(startTime);
       setLives(3);
       setRemoteEscapeEvent(null);
+      setRoundStandingsData(null);
       setRoom(prev => prev ? {
         ...prev,
         status: 'PLAYING',
@@ -80,7 +94,8 @@ export const App: React.FC = () => {
     });
 
     socket.on('roundCompleted', (data) => {
-      setActionFeed(`Level ${data.completedLevel} Cleared! Starting Next Level...`);
+      setRoundStandingsData(data);
+      setActionFeed(`Level ${data.completedLevel} Cleared!`);
       setTimeout(() => setActionFeed(null), 2500);
     });
 
@@ -170,6 +185,7 @@ export const App: React.FC = () => {
     socketService.leaveRoom();
     setRoom(null);
     setCurrentPuzzle(null);
+    setRoundStandingsData(null);
     updateUrl();
   };
 
@@ -188,12 +204,22 @@ export const App: React.FC = () => {
 
   // Render view depending on room status
   return (
-    <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col justify-between relative overflow-x-hidden">
+    <div className="h-screen max-h-screen w-screen max-w-full bg-zinc-50 text-zinc-900 flex flex-col justify-between relative overflow-hidden font-sans">
       {/* Action Notification Feed */}
       {actionFeed && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/50 text-cyan-300 font-mono text-xs shadow-lg backdrop-blur-md animate-bounce">
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-purple-100 border border-purple-300 text-purple-900 font-mono text-xs shadow-md backdrop-blur-md animate-bounce font-semibold">
           ⚡ {actionFeed}
         </div>
+      )}
+
+      {/* Round Result Standings Modal */}
+      {roundStandingsData && (
+        <RoundResultModal
+          currentLevel={roundStandingsData.completedLevel}
+          currentPlayer={currentPlayer}
+          standings={roundStandingsData.standings}
+          nextRoundInMs={roundStandingsData.nextRoundInMs}
+        />
       )}
 
       {!room ? (
@@ -205,58 +231,84 @@ export const App: React.FC = () => {
           errorMessage={errorMessage}
           onClearError={() => setErrorMessage(null)}
         />
-      ) : room.status === 'WAITING' ? (
-        <RoomLobby
-          room={room}
-          currentPlayer={currentPlayer}
-          onStartGame={handleStartGame}
-          onLeaveRoom={handleLeaveRoom}
-          isStarting={isStartingGame}
-        />
       ) : (
-        /* In Game View (COUNTDOWN, PLAYING, ROUND_COMPLETE) */
-        <div className="min-h-screen flex flex-col justify-between py-2 sm:py-4 px-2 sm:px-4">
-          <GameHUD
-            level={room.currentLevel}
-            roomCode={room.roomCode}
-            currentPlayer={currentPlayer}
-            players={room.players}
-            lives={lives}
-          />
-
-          <main className="my-auto py-2 flex items-center justify-center">
-            {currentPuzzle ? (
-              <ArrowBoard
-                gridWidth={currentPuzzle.gridWidth}
-                gridHeight={currentPuzzle.gridHeight}
-                arrows={currentPuzzle.arrows}
-                onArrowEscaped={handleArrowEscaped}
-                onPuzzleCleared={handlePuzzleCleared}
-                onBlockedMove={() => {
-                  setLives(prev => {
-                    const next = Math.max(0, prev - 1);
-                    if (next === 0) {
-                      setActionFeed('💔 Out of hearts! Try carefully!');
-                      setTimeout(() => setActionFeed(null), 2500);
-                    }
-                    return next;
-                  });
-                }}
-                roundStartTime={roundStartTime}
-                disabled={room.status !== 'PLAYING' || currentPlayer?.status === 'COMPLETED'}
-                remoteEscapeEvent={remoteEscapeEvent}
-              />
+        /* Multiplayer Room Split Layout: Left 3/4 Game/Lobby, Right 1/4 Chat */
+        <div className="w-full flex-1 flex flex-col lg:flex-row items-stretch gap-2.5 sm:gap-3 p-2 sm:p-3 max-w-[1800px] mx-auto h-screen max-h-screen overflow-hidden">
+          {/* Left 3/4 Area: Pure Game Canvas / Lobby Arena */}
+          <div className="w-full lg:w-3/4 h-full max-h-full flex flex-col justify-between min-w-0 bg-white border border-zinc-200/90 rounded-3xl p-2 sm:p-3 shadow-sm overflow-hidden">
+            {room.status === 'WAITING' ? (
+              <div className="h-full overflow-y-auto no-scrollbar">
+                <RoomLobby
+                  room={room}
+                  currentPlayer={currentPlayer}
+                  onStartGame={handleStartGame}
+                  onLeaveRoom={handleLeaveRoom}
+                  isStarting={isStartingGame}
+                />
+              </div>
             ) : (
-              <div className="text-slate-400 font-mono text-sm animate-pulse">
-                Preparing next puzzle...
+              /* In Game Pure Board View */
+              <div className="flex-1 min-h-0 flex flex-col justify-between items-center overflow-hidden">
+                <main className="flex-1 min-h-0 w-full py-1 flex items-center justify-center overflow-hidden">
+                  {currentPuzzle ? (
+                    <ArrowBoard
+                      gridWidth={currentPuzzle.gridWidth}
+                      gridHeight={currentPuzzle.gridHeight}
+                      arrows={currentPuzzle.arrows}
+                      onArrowEscaped={handleArrowEscaped}
+                      onPuzzleCleared={handlePuzzleCleared}
+                      onBlockedMove={() => {
+                        setLives(prev => {
+                          const next = Math.max(0, prev - 1);
+                          if (next === 0) {
+                            setActionFeed('💔 Out of hearts! Try carefully!');
+                            setTimeout(() => setActionFeed(null), 2500);
+                          }
+                          return next;
+                        });
+                      }}
+                      roundStartTime={roundStartTime}
+                      disabled={room.status !== 'PLAYING' || currentPlayer?.status === 'COMPLETED'}
+                      remoteEscapeEvent={remoteEscapeEvent}
+                    />
+                  ) : (
+                    <div className="text-zinc-400 font-mono text-xs animate-pulse">
+                      Preparing next puzzle...
+                    </div>
+                  )}
+                </main>
+
+                <footer className="w-full text-center text-[10px] text-zinc-400 font-mono py-0.5 shrink-0">
+                  ARROW • Synchronized Board
+                </footer>
               </div>
             )}
-          </main>
+          </div>
 
-          {/* Bottom Session Footer */}
-          <footer className="w-full text-center text-[10px] text-slate-400 font-mono py-1">
-            AS Arrow • Authoritative Sync
-          </footer>
+          {/* Right 1/4 Area: Real-Time Live Chat (Top) & Game HUD (Below Chat) */}
+          <div className="w-full lg:w-1/4 h-full max-h-full flex flex-col gap-2 min-w-0 overflow-hidden">
+            {/* Top: Live Chat */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <ChatPanel
+                currentUserId={sessionPlayerId}
+                players={room.players}
+                roomCode={room.roomCode}
+              />
+            </div>
+
+            {/* Below Chat: GameHUD (Level, Hearts, Room Code, Scores & Leaderboard) */}
+            {room.status !== 'WAITING' && (
+              <div className="shrink-0">
+                <GameHUD
+                  level={room.currentLevel}
+                  roomCode={room.roomCode}
+                  currentPlayer={currentPlayer}
+                  players={room.players}
+                  lives={lives}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

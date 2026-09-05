@@ -33,6 +33,15 @@ export interface RoomData {
   nextRoundAutoStartTime: number | null;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: number;
+  isSystem?: boolean;
+}
+
 export interface ServerToClientEvents {
   roomUpdated: (room: RoomData) => void;
   gameCountdownStarted: (countdownEndTime: number) => void;
@@ -43,6 +52,7 @@ export interface ServerToClientEvents {
   roundCompleted: (data: { completedLevel: number; winnerId: string; standings: Array<{ playerId: string; name: string; completionTime: number | null; roundScore: number; totalScore: number }>; nextRoundInMs: number }) => void;
   errorNotification: (message: string) => void;
   hostMigrated: (newHostId: string, newHostName: string) => void;
+  newChatMessage: (message: ChatMessage) => void;
 }
 
 export interface ClientToServerEvents {
@@ -53,5 +63,6 @@ export interface ClientToServerEvents {
   escapeArrow: (data: { arrowId: string; moves: number }) => void;
   submitProgress: (data: { arrowsRemaining: number; moves: number }) => void;
   submitSolved: (data: { moves: number; clientElapsedSeconds: number }, callback: (res: { success: boolean; score?: PlayerScoreBreakdown; error?: string }) => void) => void;
+  sendChatMessage: (data: { text: string }, callback?: (res: { success: boolean; error?: string }) => void) => void;
   leaveRoom: () => void;
 }

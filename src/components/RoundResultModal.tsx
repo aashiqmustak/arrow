@@ -41,30 +41,30 @@ export const RoundResultModal: React.FC<RoundResultModalProps> = ({
   const breakdown = currentPlayer?.lastRoundBreakdown;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-dark-950/85 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        initial={{ scale: 0.94, opacity: 0, y: 12 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="glass-panel-glow border-brand-cyan/40 p-6 sm:p-8 rounded-3xl w-full max-w-lg shadow-2xl flex flex-col items-center text-center relative overflow-hidden"
+        exit={{ scale: 0.94, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+        className="bg-white border border-purple-200 p-6 sm:p-7 rounded-3xl w-full max-w-md shadow-2xl flex flex-col items-center text-center relative overflow-hidden"
       >
-        {/* Glowing Top Decoration */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-2 bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-purple rounded-b-full shadow-lg shadow-brand-cyan/50" />
+        {/* Top Accent Strip */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-purple-600 rounded-b-full shadow-sm shadow-purple-500/50" />
 
         {/* Title */}
         <div className="flex items-center gap-2 mb-1">
-          <Trophy className="w-7 h-7 text-amber-400 drop-shadow-md animate-bounce" />
-          <h2 className="text-2xl sm:text-3xl font-black tracking-wider text-white uppercase font-sans">
-            ROUND COMPLETE!
+          <Trophy className="w-6 h-6 text-purple-600" />
+          <h2 className="text-xl sm:text-2xl font-black tracking-wider text-zinc-900 uppercase font-sans">
+            ROUND COMPLETE
           </h2>
         </div>
-        <p className="text-xs font-mono text-cyan-300 uppercase tracking-widest mb-5">
+        <p className="text-xs font-mono text-purple-600 uppercase tracking-widest mb-4 font-bold">
           Level {currentLevel} Cleared
         </p>
 
         {/* Standings Podium */}
-        <div className="w-full space-y-2 mb-6">
+        <div className="w-full space-y-1.5 mb-4">
           {standings.slice(0, 5).map((player, idx) => {
             const isCurrent = player.playerId === currentPlayer?.id;
             const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
@@ -72,24 +72,24 @@ export const RoundResultModal: React.FC<RoundResultModalProps> = ({
             return (
               <div
                 key={player.playerId}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-2xl border transition-all ${
+                className={`flex items-center justify-between px-3.5 py-2 rounded-xl border transition-all ${
                   isCurrent
-                    ? 'bg-brand-cyan/15 border-brand-cyan/60 shadow-lg shadow-brand-cyan/10'
-                    : 'bg-dark-800/70 border-slate-700/60'
+                    ? 'bg-purple-50 border-purple-300 text-purple-950 font-semibold'
+                    : 'bg-zinc-50 border-zinc-200 text-zinc-800'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-mono font-bold">{medal}</span>
-                  <span className={`text-sm font-bold truncate max-w-[130px] ${isCurrent ? 'text-cyan-300' : 'text-slate-200'}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-mono font-bold">{medal}</span>
+                  <span className={`text-xs font-bold truncate max-w-[130px] ${isCurrent ? 'text-purple-700' : 'text-zinc-800'}`}>
                     {player.name} {isCurrent && '(YOU)'}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-4 font-mono text-xs">
-                  <span className="text-slate-400">
+                <div className="flex items-center gap-3 font-mono text-xs">
+                  <span className="text-zinc-500">
                     {player.completionTime !== null ? `${player.completionTime}s` : 'DNP'}
                   </span>
-                  <span className="font-bold text-brand-cyan min-w-[60px] text-right">
+                  <span className="font-bold text-zinc-900 min-w-[50px] text-right">
                     +{player.roundScore}
                   </span>
                 </div>
@@ -100,40 +100,40 @@ export const RoundResultModal: React.FC<RoundResultModalProps> = ({
 
         {/* Personal Score Breakdown */}
         {breakdown && (
-          <div className="w-full bg-dark-900/80 border border-slate-800/80 rounded-2xl p-3 mb-5 font-mono text-xs">
-            <div className="text-[10px] uppercase tracking-wider text-slate-400 mb-2">Round Score Breakdown</div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col items-center p-2 rounded-xl bg-dark-800/60 border border-slate-800">
-                <span className="text-[10px] text-slate-400 flex items-center gap-1">Base</span>
-                <span className="font-bold text-slate-200 mt-0.5">+{breakdown.baseScore}</span>
+          <div className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 mb-4 font-mono text-xs">
+            <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5 font-semibold">Round Score Breakdown</div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <div className="flex flex-col items-center p-1.5 rounded-lg bg-white border border-zinc-200 shadow-2xs">
+                <span className="text-[9px] text-zinc-500">Base</span>
+                <span className="font-bold text-zinc-900 text-xs mt-0.5">+{breakdown.baseScore}</span>
               </div>
-              <div className="flex flex-col items-center p-2 rounded-xl bg-dark-800/60 border border-slate-800">
-                <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-                  <Zap className="w-3 h-3" /> Speed
+              <div className="flex flex-col items-center p-1.5 rounded-lg bg-white border border-zinc-200 shadow-2xs">
+                <span className="text-[9px] text-purple-600 flex items-center gap-0.5">
+                  <Zap className="w-2.5 h-2.5" /> Speed
                 </span>
-                <span className="font-bold text-emerald-300 mt-0.5">+{breakdown.speedBonus}</span>
+                <span className="font-bold text-purple-700 text-xs mt-0.5">+{breakdown.speedBonus}</span>
               </div>
-              <div className="flex flex-col items-center p-2 rounded-xl bg-dark-800/60 border border-slate-800">
-                <span className="text-[10px] text-amber-400 flex items-center gap-1">
-                  <Move className="w-3 h-3" /> Moves
+              <div className="flex flex-col items-center p-1.5 rounded-lg bg-white border border-zinc-200 shadow-2xs">
+                <span className="text-[9px] text-zinc-500 flex items-center gap-0.5">
+                  <Move className="w-2.5 h-2.5 text-zinc-400" /> Moves
                 </span>
-                <span className="font-bold text-amber-300 mt-0.5">+{breakdown.moveBonus}</span>
+                <span className="font-bold text-zinc-900 text-xs mt-0.5">+{breakdown.moveBonus}</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Next Level Progression Bar & Timer */}
-        <div className="w-full flex items-center justify-between p-3 rounded-2xl bg-brand-cyan/10 border border-brand-cyan/30 text-xs font-mono">
-          <div className="flex items-center gap-2 text-cyan-300 font-bold">
+        <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs font-mono">
+          <div className="flex items-center gap-2 text-purple-800 font-bold">
             <span>NEXT LEVEL</span>
-            <span className="text-slate-400">{currentLevel}</span>
-            <ArrowRight className="w-4 h-4 text-brand-cyan" />
-            <span className="text-white text-sm">{currentLevel + 1}</span>
+            <span className="text-zinc-500">{currentLevel}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-purple-600" />
+            <span className="text-zinc-900 font-bold">{currentLevel + 1}</span>
           </div>
 
-          <div className="text-slate-300 font-medium">
-            Starting in <span className="font-black text-brand-cyan text-sm">{secondsRemaining}s</span>
+          <div className="text-zinc-600 font-medium text-[11px]">
+            Starting in <span className="font-black text-purple-700 text-xs">{secondsRemaining}s</span>
           </div>
         </div>
       </motion.div>

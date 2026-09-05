@@ -1,5 +1,5 @@
 import { PathArrow, Direction, Puzzle, Point } from './arrowTypes';
-import { solvePathPuzzle, canPathArrowEscape, getDirectionDelta } from './puzzleSolver';
+import { solvePathPuzzle, getDirectionDelta } from './puzzleSolver';
 
 const DIRECTIONS: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
 
@@ -282,6 +282,32 @@ function registerPathOccupancy(
 }
 
 /**
+ * Fast O(1) escape check for procedural generation using existing occupiedNodes set.
+ */
+function canCandidateEscapeFast(
+  candidate: PathArrow,
+  occupiedNodes: Set<string>,
+  width: number,
+  height: number
+): boolean {
+  const { dx, dy } = getDirectionDelta(candidate.direction);
+  const headPoint = candidate.points[candidate.points.length - 1];
+  if (!headPoint) return false;
+
+  let curX = headPoint.x + dx;
+  let curY = headPoint.y + dy;
+
+  while (curX >= 0 && curX <= width && curY >= 0 && curY <= height) {
+    if (occupiedNodes.has(`${curX},${curY}`)) {
+      return false;
+    }
+    curX += dx;
+    curY += dy;
+  }
+  return true;
+}
+
+/**
  * Procedurally generates a dense, interlocking polyline arrow labyrinth
  * where every row (0..gridHeight) and column (0..gridWidth) of the grid is filled by arrows with 100% solvability.
  */
@@ -292,7 +318,7 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
 
   let bestArrows: PathArrow[] = [];
   let attempts = 0;
-  const maxOuterAttempts = 8;
+  const maxOuterAttempts = 12;
 
   while (attempts < maxOuterAttempts) {
     attempts++;
@@ -304,7 +330,7 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
 
     // Pass 1: Primary Archetype Placement (Spirals, Zigzags, Multi-Bend Snakes)
     let tryCount = 0;
-    const maxTries = 240;
+    const maxTries = 180;
 
     while (arrows.length < targetArrowCount && tryCount < maxTries) {
       tryCount++;
@@ -320,7 +346,7 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
       } else if (roll < 0.60) {
         pathData = createZigzagPath({ x: startX, y: startY }, width, height);
       } else {
-        const numBends = Math.floor(Math.random() * 5) + 2; // 2 to 6 bends
+        const numBends = Math.floor(Math.random() * 4) + 2; // 2 to 5 bends
         pathData = createRandomWindingPath({ x: startX, y: startY }, width, height, numBends);
       }
 
@@ -337,8 +363,7 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
         continue;
       }
 
-      const escapeCheck = canPathArrowEscape(candidate, arrows, width, height);
-      if (escapeCheck.success) {
+      if (canCandidateEscapeFast(candidate, occupiedNodes, width, height)) {
         arrows.push(candidate);
         registerPathOccupancy(pathData.points, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
       }
@@ -372,8 +397,7 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
             };
 
             if (!checkPathOverlap(pts, occupiedNodes, occupiedEdges)) {
-              const res = canPathArrowEscape(candidate, arrows, width, height);
-              if (res.success) {
+              if (canCandidateEscapeFast(candidate, occupiedNodes, width, height)) {
                 arrows.push(candidate);
                 registerPathOccupancy(pts, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
               }
@@ -413,8 +437,7 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
             };
 
             if (!checkPathOverlap(pts, occupiedNodes, occupiedEdges)) {
-              const res = canPathArrowEscape(candidate, arrows, width, height);
-              if (res.success) {
+              if (canCandidateEscapeFast(candidate, occupiedNodes, width, height)) {
                 arrows.push(candidate);
                 registerPathOccupancy(pts, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
               }
@@ -427,8 +450,8 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
     }
 
     // Pass 4: Micro-Pocket & Corner Hook Filling Pass (L-turns & U-turns across all cells)
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x += 2) {
+      for (let y = 0; y < height; y += 2) {
         if (!occupiedNodes.has(`${x},${y}`)) {
           const shapes: { pts: Point[]; dir: Direction }[] = [
             { pts: [{ x, y }, { x: x + 1, y }, { x: x + 1, y: y + 1 }], dir: 'DOWN' },
@@ -451,8 +474,7 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
                 direction: s.dir,
                 escaped: false,
               };
-              const res = canPathArrowEscape(candidate, arrows, width, height);
-              if (res.success) {
+              if (canCandidateEscapeFast(candidate, occupiedNodes, width, height)) {
                 arrows.push(candidate);
                 registerPathOccupancy(s.pts, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
                 break;
@@ -466,27 +488,30 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
     // Pass 5: Dedicated Enforcement for any uncovered row (0..height)
     for (let y = 0; y <= height; y++) {
       if (!coveredRows.has(y)) {
-        // Find any 2 adjacent free nodes along row y
         for (let x = 0; x < width; x++) {
           if (!occupiedNodes.has(`${x},${y}`) && !occupiedNodes.has(`${x + 1},${y}`)) {
-            const dir: Direction = x > width / 2 ? 'LEFT' : 'RIGHT';
-            const pts: Point[] = dir === 'RIGHT'
-              ? [{ x, y }, { x: x + 1, y }]
-              : [{ x: x + 1, y }, { x, y }];
-            const candidate: PathArrow = {
-              id: generateArrowId(arrows.length),
-              points: pts,
-              direction: dir,
-              escaped: false,
-            };
-            if (!checkPathOverlap(pts, occupiedNodes, occupiedEdges)) {
-              const res = canPathArrowEscape(candidate, arrows, width, height);
-              if (res.success) {
-                arrows.push(candidate);
-                registerPathOccupancy(pts, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
-                break;
+            const dirs: Direction[] = ['LEFT', 'RIGHT'];
+            let placed = false;
+            for (const dir of dirs) {
+              const pts: Point[] = dir === 'RIGHT'
+                ? [{ x, y }, { x: x + 1, y }]
+                : [{ x: x + 1, y }, { x, y }];
+              const candidate: PathArrow = {
+                id: generateArrowId(arrows.length),
+                points: pts,
+                direction: dir,
+                escaped: false,
+              };
+              if (!checkPathOverlap(pts, occupiedNodes, occupiedEdges)) {
+                if (canCandidateEscapeFast(candidate, occupiedNodes, width, height)) {
+                  arrows.push(candidate);
+                  registerPathOccupancy(pts, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
+                  placed = true;
+                  break;
+                }
               }
             }
+            if (placed) break;
           }
         }
       }
@@ -495,40 +520,46 @@ export function generatePuzzle(level: number, customSeed?: string): Puzzle {
     // Pass 6: Dedicated Enforcement for any uncovered column (0..width)
     for (let x = 0; x <= width; x++) {
       if (!coveredCols.has(x)) {
-        // Find any 2 adjacent free nodes along col x
         for (let y = 0; y < height; y++) {
           if (!occupiedNodes.has(`${x},${y}`) && !occupiedNodes.has(`${x},${y + 1}`)) {
-            const dir: Direction = y > height / 2 ? 'UP' : 'DOWN';
-            const pts: Point[] = dir === 'DOWN'
-              ? [{ x, y }, { x, y: y + 1 }]
-              : [{ x, y: y + 1 }, { x, y }];
-            const candidate: PathArrow = {
-              id: generateArrowId(arrows.length),
-              points: pts,
-              direction: dir,
-              escaped: false,
-            };
-            if (!checkPathOverlap(pts, occupiedNodes, occupiedEdges)) {
-              const res = canPathArrowEscape(candidate, arrows, width, height);
-              if (res.success) {
-                arrows.push(candidate);
-                registerPathOccupancy(pts, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
-                break;
+            const dirs: Direction[] = ['UP', 'DOWN'];
+            let placed = false;
+            for (const dir of dirs) {
+              const pts: Point[] = dir === 'DOWN'
+                ? [{ x, y }, { x, y: y + 1 }]
+                : [{ x, y: y + 1 }, { x, y }];
+              const candidate: PathArrow = {
+                id: generateArrowId(arrows.length),
+                points: pts,
+                direction: dir,
+                escaped: false,
+              };
+              if (!checkPathOverlap(pts, occupiedNodes, occupiedEdges)) {
+                if (canCandidateEscapeFast(candidate, occupiedNodes, width, height)) {
+                  arrows.push(candidate);
+                  registerPathOccupancy(pts, occupiedNodes, occupiedEdges, coveredRows, coveredCols);
+                  placed = true;
+                  break;
+                }
               }
             }
+            if (placed) break;
           }
         }
       }
     }
 
-    // Check if this attempt is solvable
+    // Check if this attempt is solvable and meets coverage
     const solveCheck = solvePathPuzzle(arrows, width, height);
-    if (solveCheck.isSolvable && arrows.length > bestArrows.length) {
-      bestArrows = arrows;
-      // If we have enough arrows and complete row/col coverage, break early
+    if (solveCheck.isSolvable) {
       const allRowsCovered = Array.from({ length: height + 1 }).every((_, r) => coveredRows.has(r));
       const allColsCovered = Array.from({ length: width + 1 }).every((_, c) => coveredCols.has(c));
-      if (arrows.length >= Math.floor(targetArrowCount * 0.85) && allRowsCovered && allColsCovered) {
+
+      if (arrows.length > bestArrows.length || (allRowsCovered && allColsCovered && bestArrows.length === 0)) {
+        bestArrows = arrows;
+      }
+
+      if (arrows.length >= Math.floor(targetArrowCount * 0.75) && allRowsCovered && allColsCovered) {
         break;
       }
     }

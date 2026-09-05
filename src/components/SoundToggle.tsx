@@ -16,15 +16,15 @@ export const SoundToggle: React.FC<{ className?: string }> = ({ className = '' }
   return (
     <button
       onClick={handleToggle}
-      className={`p-2.5 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+      className={`p-2.5 rounded-xl border transition-all duration-200 flex items-center justify-center cursor-pointer ${
         muted
-          ? 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
-          : 'bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan hover:bg-brand-cyan/20 shadow-lg shadow-brand-cyan/10'
+          ? 'bg-zinc-100 border-zinc-200 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200'
+          : 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 shadow-sm'
       } ${className}`}
       title={muted ? 'Sound: OFF (Click to unmute)' : 'Sound: ON (Click to mute)'}
       aria-label="Toggle Sound"
     >
-      {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+      {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
     </button>
   );
 };

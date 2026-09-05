@@ -8,24 +8,25 @@ export default {
     extend: {
       colors: {
         dark: {
-          950: '#07090e',
-          900: '#0c1017',
-          850: '#111722',
-          800: '#161f2e',
-          700: '#1f2b3e',
-          600: '#2b3b54',
+          950: '#000000',
+          900: '#090a0f',
+          850: '#0f1118',
+          800: '#151821',
+          700: '#202431',
+          600: '#2e3446',
         },
         brand: {
-          cyan: '#00f2fe',
-          blue: '#4facfe',
+          cyan: '#a855f7',
+          blue: '#9333ea',
           emerald: '#10b981',
           amber: '#f59e0b',
           rose: '#f43f5e',
-          purple: '#a855f7'
+          purple: '#a855f7',
+          violet: '#8b5cf6',
         }
       },
       fontFamily: {
-        sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       animation: {

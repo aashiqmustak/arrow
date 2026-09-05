@@ -1,5 +1,5 @@
 import { Server as SocketIOServer } from 'socket.io';
-import { RoomData, Player } from '../src/types/socketEvents';
+import { RoomData, Player, ChatMessage } from '../src/types/socketEvents';
 import { generatePuzzle } from '../src/game/puzzleGenerator';
 import { calculateRoundScore } from '../src/game/scoring';
 import { PlayerScoreBreakdown } from '../src/game/arrowTypes';
@@ -154,6 +154,7 @@ export class RoomManager {
     this.sessionToPlayer.set(sessionPlayerId, { roomCode: code, playerId: sessionPlayerId });
 
     this.broadcastRoomUpdate(code);
+    this.broadcastSystemMessage(code, `👋 ${cleanName} joined the room!`);
     return { success: true, room };
   }
 
@@ -511,6 +512,57 @@ export class RoomManager {
         this.sessionToPlayer.delete(p.id);
       }
       this.rooms.delete(roomCode);
+    }
+  }
+
+  /**
+   * Broadcasts a chat message in the room
+   */
+  public sendChatMessage(
+    roomCode: string,
+    senderId: string,
+    text: string
+  ): { success: boolean; error?: string } {
+    const code = roomCode.trim().toUpperCase();
+    const room = this.rooms.get(code);
+    if (!room) return { success: false, error: 'Room not found' };
+
+    const player = room.players[senderId];
+    if (!player) return { success: false, error: 'Player not in room' };
+
+    const cleanText = text.trim();
+    if (!cleanText) return { success: false, error: 'Message cannot be empty' };
+
+    const message: ChatMessage = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      senderId: player.id,
+      senderName: player.name,
+      text: cleanText.substring(0, 300),
+      timestamp: Date.now(),
+    };
+
+    if (this.io) {
+      this.io.to(code).emit('newChatMessage', message);
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Broadcasts a system chat announcement in the room
+   */
+  public broadcastSystemMessage(roomCode: string, text: string) {
+    const code = roomCode.trim().toUpperCase();
+    if (this.io) {
+      const message: ChatMessage = {
+        id: `sys_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        senderId: 'system',
+        senderName: 'System',
+        text,
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      this.io.to(code).emit('newChatMessage', message);
     }
   }
 

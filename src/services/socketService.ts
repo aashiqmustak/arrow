@@ -112,6 +112,15 @@ class SocketService {
     });
   }
 
+  public sendChatMessage(text: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      const s = this.getSocket();
+      s.emit('sendChatMessage', { text }, (res) => {
+        resolve(res || { success: true });
+      });
+    });
+  }
+
   public leaveRoom() {
     if (this.socket) {
       this.socket.emit('leaveRoom');
