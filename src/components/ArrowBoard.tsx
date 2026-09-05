@@ -47,35 +47,36 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
     if (!arrowToEscape || escapingArrowIds.has(arrowId)) return;
 
     sound.playArrowEscape(boardArrows.filter(a => a.escaped).length);
+    
+    // Mark as logically escaped immediately so subsequent moves are not blocked
+    setBoardArrows(prevArrows =>
+      prevArrows.map(a => (a.id === arrowId ? { ...a, escaped: true } : a))
+    );
     setEscapingArrowIds(prevMap => new Map(prevMap).set(arrowId, arrowToEscape.direction));
 
     setTimeout(() => {
-      setBoardArrows(prevArrows => {
-        const updated = prevArrows.map(a => (a.id === arrowId ? { ...a, escaped: true } : a));
-        const remaining = updated.filter(a => !a.escaped).length;
-
-        if (remaining === 0 && !isClearingRef.current) {
-          isClearingRef.current = true;
-          sound.playRoundComplete();
-          try {
-            confetti({
-              particleCount: 90,
-              spread: 80,
-              origin: { y: 0.6 },
-              colors: ['#000000', '#00f2fe', '#4facfe', '#10b981', '#f59e0b'],
-            });
-          } catch {
-            // Ignore
-          }
-        }
-        return updated;
-      });
-
       setEscapingArrowIds(prevMap => {
         const nextMap = new Map(prevMap);
         nextMap.delete(arrowId);
         return nextMap;
       });
+
+      // Check remaining
+      const remaining = boardArrows.filter(a => a.id !== arrowId && !a.escaped).length;
+      if (remaining === 0 && !isClearingRef.current) {
+        isClearingRef.current = true;
+        sound.playRoundComplete();
+        try {
+          confetti({
+            particleCount: 90,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#000000', '#00f2fe', '#4facfe', '#10b981', '#f59e0b'],
+          });
+        } catch {
+          // Ignore
+        }
+      }
     }, 820);
   }, [remoteEscapeEvent, boardArrows, escapingArrowIds]);
 
@@ -105,49 +106,44 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
 
         if (result.success) {
           // Success!
-          const escapedCount = boardArrows.filter(a => a.escaped).length;
-          sound.playArrowEscape(escapedCount);
+          const currentEscapedCount = boardArrows.filter(a => a.escaped).length;
+          sound.playArrowEscape(currentEscapedCount);
 
-          // Mark escaping animation direction
+          // Mark as escaped immediately in state so subsequent clicks never get blocked
+          setBoardArrows(prevArrows =>
+            prevArrows.map(a => (a.id === arrow.id ? { ...a, escaped: true } : a))
+          );
           setEscapingArrowIds(prevMap => new Map(prevMap).set(arrow.id, arrow.direction));
 
+          const remaining = boardArrows.filter(a => a.id !== arrow.id && !a.escaped).length;
+          onArrowEscaped(arrow.id, remaining, nextMoves);
+
           setTimeout(() => {
-            setBoardArrows(prevArrows => {
-              const updated = prevArrows.map(a =>
-                a.id === arrow.id ? { ...a, escaped: true } : a
-              );
-              const remaining = updated.filter(a => !a.escaped).length;
-
-              onArrowEscaped(arrow.id, remaining, nextMoves);
-
-              // Check if all cleared
-              if (remaining === 0 && !isClearingRef.current) {
-                isClearingRef.current = true;
-                sound.playRoundComplete();
-
-                try {
-                  confetti({
-                    particleCount: 90,
-                    spread: 80,
-                    origin: { y: 0.6 },
-                    colors: ['#000000', '#00f2fe', '#4facfe', '#10b981', '#f59e0b'],
-                  });
-                } catch {
-                  // Ignore
-                }
-
-                const elapsed = roundStartTime ? Math.max(0.1, (Date.now() - roundStartTime) / 1000) : 0;
-                onPuzzleCleared(nextMoves, Number(elapsed.toFixed(2)));
-              }
-
-              return updated;
-            });
-
             setEscapingArrowIds(prevMap => {
               const nextMap = new Map(prevMap);
               nextMap.delete(arrow.id);
               return nextMap;
             });
+
+            // Check if all cleared
+            if (remaining === 0 && !isClearingRef.current) {
+              isClearingRef.current = true;
+              sound.playRoundComplete();
+
+              try {
+                confetti({
+                  particleCount: 90,
+                  spread: 80,
+                  origin: { y: 0.6 },
+                  colors: ['#000000', '#00f2fe', '#4facfe', '#10b981', '#f59e0b'],
+                });
+              } catch {
+                // Ignore
+              }
+
+              const elapsed = roundStartTime ? Math.max(0.1, (Date.now() - roundStartTime) / 1000) : 0;
+              onPuzzleCleared(nextMoves, Number(elapsed.toFixed(2)));
+            }
           }, 820);
         } else {
           // Blocked!
@@ -167,7 +163,7 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
         return nextMoves;
       });
     },
-    [disabled, escapingArrowIds, boardArrows, gridWidth, gridHeight, onArrowEscaped, onPuzzleCleared, roundStartTime]
+    [disabled, escapingArrowIds, boardArrows, gridWidth, gridHeight, onArrowEscaped, onPuzzleCleared, onBlockedMove, roundStartTime]
   );
 
   // Trigger Hint: highlights an arrow that is currently free to escape
@@ -340,9 +336,9 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
 
           {/* Polyline Path Arrows */}
           {boardArrows.map(arrow => {
-            if (arrow.escaped) return null;
-
             const isEscaping = escapingArrowIds.has(arrow.id);
+            if (arrow.escaped && !isEscaping) return null;
+
             const escapeDir = escapingArrowIds.get(arrow.id);
             const isBlocked = blockedArrowId === arrow.id;
             const isBlocker = highlightBlockerId === arrow.id;
