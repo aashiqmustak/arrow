@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import { PathArrow, Direction, Point } from '../game/arrowTypes';
 import { canPathArrowEscape, getAvailablePathEscapes, getDirectionDelta } from '../game/puzzleSolver';
 import { sound } from '../game/audioEngine';
-import { Lightbulb, RotateCcw, Grid3X3 } from 'lucide-react';
+import { Lightbulb, RotateCcw } from 'lucide-react';
 
 interface ArrowBoardProps {
   gridWidth: number;
@@ -425,41 +425,42 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
           })}
         </svg>
 
-        {/* In-Game Bottom Utilities matching screenshot (Hint, Grid, and Reset) */}
-        <div className="flex items-center justify-between w-full mt-4 pt-3 border-t border-slate-100">
+        {/* In-Game Bottom Utilities matching screenshot */}
+        <div className="flex items-center justify-between w-full mt-3 pt-3 border-t border-slate-100">
           <div className="flex items-center gap-2">
+            {/* Reset Button */}
+            <button
+              onClick={handleResetBoard}
+              disabled={disabled}
+              className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+              title="Reset Board"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+
+            {/* Hint Button styled like reference image */}
             <button
               onClick={handleHint}
               disabled={disabled || remainingCount === 0}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-600 font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
               title="Get Hint"
             >
-              <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400" />
-              <span>HINT</span>
-            </button>
-
-            {/* Grid Toggle Button next to Hint */}
-            <button
-              onClick={handleToggleGrid}
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-2xl border font-bold text-xs shadow-sm transition-all active:scale-95 cursor-pointer ${
-                showGrid
-                  ? 'bg-blue-50 border-blue-300 text-blue-600'
-                  : 'bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-600'
-              }`}
-              title={showGrid ? 'Hide Grid' : 'Show Grid'}
-            >
-              <Grid3X3 className="w-4 h-4" />
-              <span className="hidden sm:inline">GRID</span>
+              <Lightbulb className="w-4 h-4 text-amber-300 fill-amber-300" />
+              <span className="tracking-wide">Hint</span>
             </button>
           </div>
 
+          {/* Grid Toggle Button styled like the soft # button in screenshot */}
           <button
-            onClick={handleResetBoard}
-            disabled={disabled}
-            className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
-            title="Reset Board"
+            onClick={handleToggleGrid}
+            className={`flex items-center justify-center w-10 h-10 rounded-2xl border font-bold text-sm shadow-sm transition-all active:scale-95 cursor-pointer ${
+              showGrid
+                ? 'bg-indigo-100 border-indigo-200 text-indigo-700 shadow-indigo-100'
+                : 'bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-600'
+            }`}
+            title={showGrid ? 'Hide Grid' : 'Show Grid'}
           >
-            <RotateCcw className="w-4 h-4" />
+            <span className="text-base font-bold font-mono">#</span>
           </button>
         </div>
       </div>
