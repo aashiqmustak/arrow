@@ -242,6 +242,46 @@ export class RoomManager {
   }
 
   /**
+   * Synchronizes arrow escape across all players in the room
+   */
+  public handleArrowEscape(socketId: string, arrowId: string, moves: number) {
+    const roomCode = this.playerToRoom.get(socketId);
+    if (!roomCode) return;
+
+    const room = this.rooms.get(roomCode);
+    if (!room || room.status !== 'PLAYING' || !room.currentPuzzle) return;
+
+    const player = Object.values(room.players).find(p => p.socketId === socketId);
+    if (!player) return;
+
+    // Mark arrow as escaped in current puzzle
+    const arrow = room.currentPuzzle.arrows.find(a => a.id === arrowId);
+    if (arrow) {
+      arrow.escaped = true;
+    }
+
+    const remainingCount = room.currentPuzzle.arrows.filter(a => !a.escaped).length;
+    player.moves = moves;
+    room.lastActivity = Date.now();
+
+    if (this.io) {
+      this.io.to(roomCode).emit('arrowEscapedByPlayer', {
+        arrowId,
+        playerId: player.id,
+        playerName: player.name,
+        remainingCount,
+        moves,
+      });
+    }
+
+    // If board is fully cleared
+    if (remainingCount === 0) {
+      const clientElapsedSeconds = room.roundStartTime ? (Date.now() - room.roundStartTime) / 1000 : 1;
+      this.handlePlayerSolved(socketId, moves, clientElapsedSeconds);
+    }
+  }
+
+  /**
    * Player submits arrow progress during solving
    */
   public updatePlayerProgress(socketId: string, arrowsRemaining: number, moves: number) {

@@ -93,6 +93,11 @@ class SocketService {
     });
   }
 
+  public escapeArrow(arrowId: string, moves: number) {
+    const s = this.getSocket();
+    s.emit('escapeArrow', { arrowId, moves });
+  }
+
   public submitProgress(arrowsRemaining: number, moves: number) {
     const s = this.getSocket();
     s.emit('submitProgress', { arrowsRemaining, moves });

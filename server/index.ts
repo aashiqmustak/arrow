@@ -105,6 +105,11 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Escape arrow (live sync across all players in room)
+  socket.on('escapeArrow', ({ arrowId, moves }) => {
+    roomManager.handleArrowEscape(socket.id, arrowId, moves);
+  });
+
   // Live progress updates
   socket.on('submitProgress', ({ arrowsRemaining, moves }) => {
     roomManager.updatePlayerProgress(socket.id, arrowsRemaining, moves);

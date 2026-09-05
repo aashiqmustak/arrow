@@ -32,6 +32,8 @@ export const App: React.FC = () => {
     totalScore: number;
   }> | null>(null);
   const [nextRoundInMs, setNextRoundInMs] = useState<number>(6000);
+  const [remoteEscapeEvent, setRemoteEscapeEvent] = useState<{ arrowId: string; playerName?: string } | null>(null);
+  const [actionFeed, setActionFeed] = useState<string | null>(null);
 
   const sessionPlayerId = getSessionPlayerId();
 
@@ -67,6 +69,7 @@ export const App: React.FC = () => {
     socket.on('gameCountdownStarted', (endTime: number) => {
       setCountdownEndTime(endTime);
       setRoundStandings(null);
+      setRemoteEscapeEvent(null);
     });
 
     socket.on('roundStarted', (puzzle: Puzzle, startTime: number) => {
@@ -75,6 +78,16 @@ export const App: React.FC = () => {
       setArrowsRemaining(puzzle.arrows.length);
       setMoveCount(0);
       setRoundStandings(null);
+      setRemoteEscapeEvent(null);
+    });
+
+    socket.on('arrowEscapedByPlayer', (data) => {
+      setArrowsRemaining(data.remainingCount);
+      if (data.playerId !== sessionPlayerId) {
+        setRemoteEscapeEvent({ arrowId: data.arrowId, playerName: data.playerName });
+        setActionFeed(`${data.playerName} cleared an arrow!`);
+        setTimeout(() => setActionFeed(null), 2000);
+      }
     });
 
     socket.on('roundCompleted', (data) => {
@@ -173,9 +186,10 @@ export const App: React.FC = () => {
   };
 
   // Arrow escaped handler
-  const handleArrowEscaped = useCallback((_arrowId: string, remaining: number, moves: number) => {
+  const handleArrowEscaped = useCallback((arrowId: string, remaining: number, moves: number) => {
     setArrowsRemaining(remaining);
     setMoveCount(moves);
+    socketService.escapeArrow(arrowId, moves);
     socketService.submitProgress(remaining, moves);
   }, []);
 
@@ -191,6 +205,13 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col justify-between relative overflow-x-hidden">
       {/* Synchronized Countdown Overlay */}
       {countdownEndTime && <CountdownOverlay countdownEndTime={countdownEndTime} />}
+
+      {/* Action Notification Feed */}
+      {actionFeed && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/50 text-cyan-300 font-mono text-xs shadow-lg backdrop-blur-md animate-bounce">
+          ⚡ {actionFeed}
+        </div>
+      )}
 
       {/* Round Finished Standings & Progression Modal */}
       {roundStandings && (
@@ -241,6 +262,7 @@ export const App: React.FC = () => {
                 onPuzzleCleared={handlePuzzleCleared}
                 roundStartTime={roundStartTime}
                 disabled={room.status !== 'PLAYING' || currentPlayer?.status === 'COMPLETED'}
+                remoteEscapeEvent={remoteEscapeEvent}
               />
             ) : (
               <div className="text-slate-400 font-mono text-sm animate-pulse">

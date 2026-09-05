@@ -13,6 +13,7 @@ interface ArrowBoardProps {
   onPuzzleCleared: (moveCount: number, completionTimeSeconds: number) => void;
   roundStartTime: number | null;
   disabled?: boolean;
+  remoteEscapeEvent?: { arrowId: string; playerName?: string } | null;
 }
 
 export const ArrowBoard: React.FC<ArrowBoardProps> = ({
@@ -23,6 +24,7 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
   onPuzzleCleared,
   roundStartTime,
   disabled = false,
+  remoteEscapeEvent = null,
 }) => {
   const [boardArrows, setBoardArrows] = useState<PathArrow[]>(initialArrows);
   const [blockedArrowId, setBlockedArrowId] = useState<string | null>(null);
@@ -32,6 +34,29 @@ export const ArrowBoard: React.FC<ArrowBoardProps> = ({
   const [, setMoveCount] = useState<number>(0);
 
   const isClearingRef = useRef<boolean>(false);
+
+  // Handle remote arrow escape from other player in real-time
+  useEffect(() => {
+    if (!remoteEscapeEvent) return;
+    const { arrowId } = remoteEscapeEvent;
+
+    const arrowToEscape = boardArrows.find(a => a.id === arrowId && !a.escaped);
+    if (!arrowToEscape || escapingArrowIds.has(arrowId)) return;
+
+    sound.playArrowEscape(boardArrows.filter(a => a.escaped).length);
+    setEscapingArrowIds(prevMap => new Map(prevMap).set(arrowId, arrowToEscape.direction));
+
+    setTimeout(() => {
+      setBoardArrows(prevArrows =>
+        prevArrows.map(a => (a.id === arrowId ? { ...a, escaped: true } : a))
+      );
+      setEscapingArrowIds(prevMap => {
+        const nextMap = new Map(prevMap);
+        nextMap.delete(arrowId);
+        return nextMap;
+      });
+    }, 300);
+  }, [remoteEscapeEvent, boardArrows, escapingArrowIds]);
 
   // Sync board arrows when new puzzle arrives
   useEffect(() => {
