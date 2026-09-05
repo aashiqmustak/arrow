@@ -11,12 +11,29 @@ describe('AS Arrow - Polyline Labyrinth Puzzle Engine', () => {
       const puzzle = generatePuzzle(level);
       expect(puzzle).toBeDefined();
       expect(puzzle.level).toBe(level);
-      expect(puzzle.arrows.length).toBeGreaterThan(0);
+      expect(puzzle.arrows.length).toBeGreaterThanOrEqual(70);
 
       // Verify solvePathPuzzle confirms solvability
       const solveResult = solvePathPuzzle(puzzle.arrows, puzzle.gridWidth, puzzle.gridHeight);
       expect(solveResult.isSolvable).toBe(true);
       expect(solveResult.solutionOrder.length).toBe(puzzle.arrows.length);
+
+      // Verify arrows exist across all rows and columns
+      const coveredRows = new Set<number>();
+      const coveredCols = new Set<number>();
+      for (const arrow of puzzle.arrows) {
+        for (const pt of arrow.points) {
+          coveredRows.add(pt.y);
+          coveredCols.add(pt.x);
+        }
+      }
+
+      for (let r = 0; r <= puzzle.gridHeight; r++) {
+        expect(coveredRows.has(r)).toBe(true);
+      }
+      for (let c = 0; c <= puzzle.gridWidth; c++) {
+        expect(coveredCols.has(c)).toBe(true);
+      }
     }
   });
 
